@@ -76,26 +76,22 @@ The following decisions form the current AEW v0.1 architectural baseline.
 
 | ID | Decision | Status | Document |
 |---|---|---|---|
-| ADR-001 | Earlier Project Brain storage decision — title and details to confirm | Unconfirmed | Not yet authored |
-| ADR-002 | Earlier knowledge vault decision — title and details to confirm | Unconfirmed | Not yet authored |
-| ADR-003 | Revision-scoped graph snapshots | Accepted; document pending | [ADR-003](ADR-003-revision-scoped-snapshots.md) |
-| ADR-004 | Workspace consistency and concurrent modification protection | Accepted; document pending | [ADR-004](ADR-004-workspace-consistency.md) |
-| ADR-005 | Git preflight and task branch strategy | Accepted; document pending | [ADR-005](ADR-005-git-preflight.md) |
-| ADR-006 | Per-project intelligence profiles | Accepted; document pending | [ADR-006](ADR-006-project-intelligence-profile.md) |
-| ADR-007 | Staged discovery and targeted invalidation | Accepted; document pending | [ADR-007](ADR-007-staged-discovery.md) |
-| ADR-008 | Progressive knowledge depth | Accepted; document pending | [ADR-008](ADR-008-progressive-knowledge-depth.md) |
-| ADR-009 | Immutable Context Packages | Accepted; document pending | [ADR-009](ADR-009-context-packages.md) |
-| ADR-010 | Controlled execution and checkpoints | Accepted; document pending | [ADR-010](ADR-010-controlled-execution.md) |
-| ADR-011 | Adaptive Work Units and delivery | Accepted; document pending | [ADR-011](ADR-011-work-units-and-delivery.md) |
-| ADR-012 | Adaptive planning and event-driven approval | Accepted; document pending | [ADR-012](ADR-012-adaptive-planning.md) |
+| ADR-001 | Project Brain storage | Unconfirmed | [ADR-001](ADR-001-project-brain-storage.md) |
+| ADR-002 | Shared knowledge vault | Unconfirmed | [ADR-002](ADR-002-knowledge-vault.md) |
+| ADR-003 | Revision-scoped graph snapshots | Accepted | [ADR-003](ADR-003-revision-scoped-snapshots.md) |
+| ADR-004 | Workspace consistency and concurrent modification protection | Accepted | [ADR-004](ADR-004-workspace-consistency.md) |
+| ADR-005 | Git preflight and task branch strategy | Accepted | [ADR-005](ADR-005-git-preflight.md) |
+| ADR-006 | Per-project intelligence profiles | Accepted | [ADR-006](ADR-006-project-intelligence-profile.md) |
+| ADR-007 | Staged discovery and targeted invalidation | Accepted | [ADR-007](ADR-007-staged-discovery.md) |
+| ADR-008 | Progressive knowledge depth | Accepted | [ADR-008](ADR-008-progressive-knowledge-depth.md) |
+| ADR-009 | Immutable Context Packages | Accepted | [ADR-009](ADR-009-context-packages.md) |
+| ADR-010 | Controlled execution and checkpoints | Accepted | [ADR-010](ADR-010-controlled-execution.md) |
+| ADR-011 | Adaptive Work Units and delivery | Accepted | [ADR-011](ADR-011-work-units-and-delivery.md) |
+| ADR-012 | Adaptive planning and event-driven approval | Accepted | [ADR-012](ADR-012-adaptive-planning.md) |
 
 **Registry convention:** An accepted decision and a completed ADR document are different things.
 
-The decisions above have been established during architectural design. Their individual Markdown records must still be written and reviewed for fidelity.
-
-Links to pending documents represent intended paths, not evidence that the files currently exist.
-
-ADR-001 and ADR-002 must not be marked accepted until their original decisions have been confirmed.
+All twelve records are present. ADR-001 and ADR-002 carry Accepted headers, while their approval sections still call for engineer confirmation. The registry status remains Unconfirmed pending that review.
 
 ---
 
@@ -478,26 +474,9 @@ Do not mark an ADR verified merely because code was written.
 
 ---
 
-## 11. Documentation Completion Plan
+## 11. Outstanding Decision Status Review
 
-The immediate documentation work is to produce individual records for the established decisions.
-
-Recommended order:
-
-1. ADR-003 — Revision-scoped graph snapshots.
-2. ADR-004 — Workspace consistency.
-3. ADR-005 — Git preflight.
-4. ADR-006 — Project intelligence profiles.
-5. ADR-007 — Staged discovery.
-6. ADR-008 — Progressive knowledge depth.
-7. ADR-009 — Context Packages.
-8. ADR-010 — Controlled execution.
-9. ADR-011 — Work Units and delivery.
-10. ADR-012 — Adaptive planning.
-
-After these are written, review the original architectural history to determine whether ADR-001 and ADR-002 can be accurately reconstructed.
-
-Do not create placeholder decisions merely to fill numbering gaps.
+Confirm the acceptance history of ADR-001 and ADR-002 with the engineer and reconcile the record headers, approval sections, and registry after review.
 
 ---
 

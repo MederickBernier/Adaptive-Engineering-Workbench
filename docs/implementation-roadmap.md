@@ -160,7 +160,7 @@ Independent work may proceed concurrently where it does not compromise contracts
 # 5. M0 — Repository Bootstrap and Verification Baseline
 
 **Priority:** Critical  
-**Status:** Planned  
+**Status:** Verified
 **Objective:** Establish a reproducible, testable implementation foundation.
 
 ### 5.1 Scope
@@ -194,7 +194,7 @@ The following files have been drafted during architectural development:
 
 - `README.md`
 - `docs/architecture.md`
-- `skills/aew-task/SKILL.md`
+- `aew/skills/aew-task/SKILL.MD`
 
 **Contracts**
 
@@ -215,7 +215,7 @@ The following files have been drafted during architectural development:
 
 - `tests/contracts/test_schemas.py`
 - `tests/contracts/test_semantics.py`
-- `tests/unit/test_config.py`
+- `tests/unit/test_unit.py`
 - `tests/unit/test_preflight.py`
 - `tests/integration/test_git_repository.py`
 
@@ -276,6 +276,8 @@ CI should initially run:
 External GitHub access must not be required for ordinary CI.
 
 ### 5.5 Exit criteria
+
+The [M0 verification record](codex-handoff.md#137-m0-verification-record) captures the observed results and remaining issues.
 
 M0 is verified when:
 
@@ -932,7 +934,7 @@ Integrate the AEW skill layer with the deterministic engine into a coherent engi
 
 The first integrated skill is:
 
-`skills/aew-task/SKILL.md`
+`aew/skills/aew-task/SKILL.MD`
 
 It should orchestrate:
 

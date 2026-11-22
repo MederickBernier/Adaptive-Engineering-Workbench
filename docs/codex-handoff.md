@@ -115,23 +115,9 @@ Read individual ADRs when their decisions affect the current Work Unit.
 
 Do not assume missing documentation exists.
 
-### 3.3 Missing ADRs
+### 3.3 ADR availability and status
 
-The architecture baseline includes accepted decisions ADR-003 through ADR-012.
-
-Their individual Markdown documents may not yet exist in the repository.
-
-ADR-001 and ADR-002 have not been independently confirmed for this handoff.
-
-Codex must:
-
-- Report missing ADR documents.
-- Preserve established decisions where documented.
-- Avoid inventing historical rationale.
-- Avoid treating proposed reconstructions as accepted decisions.
-- Request review before changing an established invariant.
-
-Missing documentation does not automatically authorize architectural redesign.
+The repository contains ADR-001 through ADR-012. ADR-003 through ADR-012 form the confirmed baseline. ADR-001 and ADR-002 require engineer confirmation because their headers and approval sections disagree. See the [ADR index](adr/README.MD).
 
 ### 3.4 Conflict handling
 
@@ -150,21 +136,25 @@ Do not silently rewrite an accepted contract to make a failing test pass.
 
 ## 4. Expected Repository Structure
 
-The intended initial repository layout is:
+The M0 repository layout includes:
 
 ```text
-aew/
-├── AGENTS.md
-├── README.md
+AEW repository/
+├── AGENTS.MD
+├── README.MD
+├── pyproject.toml
+├── .gitignore
+├── .github/workflows/ci.yml
 ├── docs/
 │   ├── architecture.md
 │   ├── implementation-roadmap.md
 │   ├── codex-handoff.md
 │   └── adr/
-│       └── README.md
-├── skills/
-│   └── aew-task/
-│       └── SKILL.md
+│       └── README.MD
+├── aew/
+│   └── skills/
+│       └── aew-task/
+│           └── SKILL.MD
 ├── contracts/
 │   ├── task.schema.json
 │   ├── context.schema.json
@@ -184,17 +174,14 @@ aew/
     │   ├── test_schemas.py
     │   └── test_semantics.py
     ├── unit/
-    │   ├── test_config.py
+    │   ├── test_unit.py
+    │   ├── test_github_client.py
     │   └── test_preflight.py
     └── integration/
         └── test_git_repository.py
 ```
 
-This structure describes the planned baseline.
-
-It is not proof that every file exists.
-
-Codex must inspect the actual filesystem and report differences.
+The verification record in section 13.7 documents the inspected baseline and remaining gaps.
 
 ### 4.1 Source availability
 
@@ -829,6 +816,40 @@ Use one of:
 - **Blocked:** A dependency or defect prevents completion.
 
 ---
+
+### 13.7 M0 verification record
+
+**Status:** Verified on 2026-11-22. The audited workstation checkout was `F:/Skills Development/AI Engineering Workbench` on `master` at `13d40a8`. The initial working tree was clean.
+
+| Work Unit | Commit | Result |
+|---|---|---|
+| Development environment | `1acefab` | Added Python package metadata, editable installation, pytest and Ruff configuration, and setup instructions. |
+| Contract verification | `a3e9733` | Added the Standard task fixture and corrected the negative approval fixture filename. |
+| Local engine verification | No change required | Verified configuration, Git integration, and local preflight with 73 passing tests. |
+| GitHub client | `7f1d165` | Added 13 offline tests and made malformed response fields raise `GitHubDataError`. |
+| CI | `7434bc4` | Added the Linux and Windows jobs and aligned the Python source and developer commands with Ruff. |
+
+The audit covered the four engine modules, all five schemas, their fixtures, the test modules, the task skill, and the architecture documents. Configuration tests are in `tests/unit/test_unit.py`. All twelve ADR files are present.
+
+| Check | Command | Observed result |
+|---|---|---|
+| Clean Python 3.13 environment | `python -m venv .venv`, then `python -m pip install -e ".[dev]"` in that environment | Editable installation succeeded. |
+| Draft 2020-12 schemas, fixtures, and cross-contract semantics | `python -m pytest -q -p no:cacheprovider tests/contracts` | 27 passed, 3 skipped. Both negative fixtures failed for their intended reasons. |
+| Configuration, local preflight, and disposable Git integration | `python -m pytest -q tests/unit tests/integration` at the local engine checkpoint | 73 passed. |
+| Mocked GitHub CLI | `python -m pytest -q tests/unit/test_github_client.py` | 13 passed. |
+| Full test suite | `python -m pytest -q` using the local virtual environment | 113 passed, 3 skipped. The skipped cases are negative-fixture checks for contracts without negative examples. |
+| Static analysis and formatting | `python -m ruff check engine tests` and `python -m ruff format --check engine tests` | Both passed. |
+| Hosted verification | [GitHub Actions run 45018923750](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45018923750) | The workflow completed successfully for `7434bc4` with the Linux and Windows matrix. |
+
+The Windows sandbox blocked Git's shell during a disposable local-remote test. The full suite passed outside the sandbox.
+
+| Classification | Remaining issue |
+|---|---|
+| Important | ADR-001 and ADR-002 have conflicting acceptance language. Confirm their decision history with the engineer before relying on either record as accepted. |
+| Deferred | The Execution schema requires `delivery.prepare_commit: true`. Read-only Explore support requires the reviewed, versioned contract change specified in [ADR-010](adr/ADR-010-controlled-execution.md). |
+| Deferred | Live GitHub adapter calls and complete remote preflight remain unverified. The current suite exercises mocked GitHub responses and disposable local Git repositories. M1 owns remote preflight integration. |
+
+The verified baseline is ready for M1 review. M1 requires a new assignment.
 
 ## 14. Stop Conditions
 
