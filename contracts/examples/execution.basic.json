@@ -1,0 +1,67 @@
+
+{
+  "schema_version": "0.1",
+  "execution_id": "exec-142-investigate-01",
+  "task_id": "github:example/api#142",
+  "work_unit_id": "142-01",
+  "plan_revision": 1,
+  "context": {
+    "package_id": "ctx-142-v1",
+    "snapshot_id": "snapshot-example-api-a1",
+    "require_freshness": true
+  },
+  "authorization": {
+    "grant_id": "grant-142-investigate-01",
+    "required_operations": [
+      "investigate"
+    ]
+  },
+  "workspace": {
+    "repository": "example/api",
+    "branch": "master",
+    "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_id": "workspace-example-api-main",
+    "expected_fingerprint": "sha256:example-workspace-fingerprint"
+  },
+  "scope": {
+    "allowed_paths": [
+      "src/customer/**",
+      "tests/customer/**",
+      "docs/customer-api.md",
+      "pom.xml"
+    ],
+    "protected_paths": [
+      ".git/**",
+      ".github/workflows/**",
+      "**/.env",
+      "**/.env.*"
+    ],
+    "preserve_unrelated_changes": true
+  },
+  "budget": {
+    "max_iterations": 5,
+    "max_duration_seconds": 900,
+    "max_tool_calls": 30,
+    "on_exhaustion": "suspend",
+    "progress_check": "on_checkpoint"
+  },
+  "verification": {
+    "required_checks": [],
+    "require_evidence": true,
+    "stop_on_failure": false
+  },
+  "delivery": {
+    "prepare_commit": true,
+    "execute_commit": false,
+    "push": false,
+    "create_pr": false,
+    "merge": false
+  },
+  "state": {
+    "status": "ready",
+    "iteration": 0,
+    "outcome": "not_determined",
+    "last_checkpoint_id": null,
+    "suspension_reason": null
+  }
+}

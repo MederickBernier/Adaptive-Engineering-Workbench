@@ -1,0 +1,148 @@
+
+{
+  "schema_version": "0.1",
+  "package_id": "ctx-142-v1",
+  "parent_package_id": null,
+  "identity": {
+    "task_id": "github:example/api#142",
+    "repository": "example/api",
+    "revision": {
+      "branch": "master",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot_id": "snapshot-example-api-a1",
+      "workspace_fingerprint": null
+    }
+  },
+  "integrity": {
+    "freshness": "current",
+    "coverage": "partial",
+    "limitations": [
+      "Only the customer response mapping subsystem was inspected.",
+      "External service behavior has not been independently verified."
+    ],
+    "discovery_depth": "mixed",
+    "generated_at": "2026-11-22T10:00:00Z"
+  },
+  "project": {
+    "languages": [
+      "java"
+    ],
+    "frameworks": [
+      "spring-boot"
+    ],
+    "conventions": [
+      {
+        "id": "convention.customer.null-handling",
+        "authority": "approved",
+        "scope": [
+          "src/customer/**"
+        ],
+        "evidence": [
+          {
+            "source": "repository",
+            "reference": "docs/customer-api.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "description": "Documents the existing customer not-found behavior."
+          }
+        ]
+      }
+    ],
+    "verification_commands": [
+      {
+        "command": "./mvnw test",
+        "evidence": {
+          "source": "repository",
+          "reference": "pom.xml",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "description": "Maven project configuration."
+        }
+      }
+    ]
+  },
+  "knowledge": {
+    "components": [
+      {
+        "id": "component.customer-mapper",
+        "label": "CustomerMapper",
+        "depth": "deep",
+        "scope": [
+          "src/customer/CustomerMapper.java"
+        ]
+      },
+      {
+        "id": "component.customer-service",
+        "label": "CustomerService",
+        "depth": "light",
+        "scope": [
+          "src/customer/CustomerService.java"
+        ]
+      }
+    ],
+    "contracts": [
+      {
+        "id": "contract.customer-api",
+        "authority": "approved",
+        "scope": [
+          "src/customer/**"
+        ],
+        "evidence": [
+          {
+            "source": "repository",
+            "reference": "docs/customer-api.md",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "description": "Customer API behavior contract."
+          }
+        ]
+      }
+    ],
+    "assertions": [
+      {
+        "id": "assertion.customer-mapper.null-response",
+        "claim": "CustomerMapper handles customer response mapping.",
+        "relevance": "direct",
+        "authority": "informational",
+        "verification": "source_verified",
+        "evidence": [
+          {
+            "source": "repository",
+            "reference": "src/customer/CustomerMapper.java",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "description": "Source implementation of response mapping."
+          }
+        ]
+      },
+      {
+        "id": "assertion.customer-service.dependency",
+        "claim": "CustomerService depends on CustomerMapper for response conversion.",
+        "relevance": "related",
+        "authority": "informational",
+        "verification": "provisional",
+        "evidence": [
+          {
+            "source": "repository",
+            "reference": "src/customer/CustomerService.java",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "description": "Candidate dependency requiring direct verification."
+          }
+        ]
+      }
+    ]
+  },
+  "coordination": {
+    "relevant_prs": [],
+    "dependencies": [
+      {
+        "reference": "component.customer-service",
+        "relationship": "related"
+      }
+    ]
+  },
+  "uncertainties": [
+    {
+      "id": "Q1",
+      "question": "Does the existing not-found behavior cover every customer lookup endpoint?",
+      "blocking": false,
+      "reason": "The task concerns response mapping; broader endpoint behavior has not yet been investigated."
+    }
+  ]
+}

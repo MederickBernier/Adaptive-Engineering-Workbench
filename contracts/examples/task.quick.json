@@ -1,0 +1,92 @@
+
+{
+  "schema_version": "0.1",
+  "task": {
+    "id": "github:example/api#142",
+    "source": "github",
+    "repository": "example/api",
+    "issue_number": 142,
+    "title": "Handle null customer responses",
+    "objective": "Prevent null customer responses from causing an unhandled exception.",
+    "acceptance_criteria": [
+      "Null customer responses return the existing not-found result.",
+      "Valid customer responses retain their current behavior.",
+      "A regression test covers the null response case."
+    ],
+    "constraints": [
+      "Preserve the public API.",
+      "Do not introduce new dependencies."
+    ]
+  },
+  "assessment": {
+    "profile": "quick",
+    "rationale": "Localized behavior change with established handling conventions and limited expected impact.",
+    "risk": "low",
+    "uncertainty": "low"
+  },
+  "evidence": [
+    {
+      "reference": "src/customer/CustomerMapper.java",
+      "description": "Example source file containing the response mapping logic.",
+      "verification": "verified",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "reference": "tests/customer/CustomerMapperTest.java",
+      "description": "Example regression test location.",
+      "verification": "verified",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "preflight": {
+    "status": "passed",
+    "branch": "master",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace": "clean",
+    "proposed_branch": "mb/fix/142-null-customer-response",
+    "relevant_prs": [],
+    "findings": [
+      "No relevant overlapping pull requests were identified in the fictional test scenario.",
+      "The working tree is clean in the fictional test scenario."
+    ]
+  },
+  "plan": {
+    "revision": 1,
+    "approach": "Apply a localized null-handling correction using the existing not-found behavior, then add regression coverage.",
+    "scope": [
+      "src/customer/CustomerMapper.java",
+      "tests/customer/CustomerMapperTest.java"
+    ],
+    "work_units": [
+      {
+        "id": "142-01",
+        "objective": "Correct null response mapping and add regression coverage.",
+        "scope": [
+          "src/customer/CustomerMapper.java",
+          "tests/customer/CustomerMapperTest.java"
+        ],
+        "acceptance": [
+          "Null responses produce the expected not-found result.",
+          "Existing successful response mapping remains unchanged.",
+          "Regression tests pass."
+        ],
+        "dependencies": [],
+        "commit_required": true
+      }
+    ],
+    "verification": [
+      "Run the customer mapper regression tests.",
+      "Run the relevant existing customer module tests.",
+      "Inspect the final diff for unintended API changes."
+    ]
+  },
+  "approval": {
+    "status": "pending",
+    "required_actions": [
+      "create_branch",
+      "implement",
+      "run_tests"
+    ],
+    "questions": []
+  }
+}

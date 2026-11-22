@@ -1,0 +1,92 @@
+
+{
+  "schema_version": "0.1",
+  "delivery_id": "delivery-142-01",
+  "task_id": "github:example/api#142",
+  "repository": "example/api",
+  "plan_revision": 1,
+  "work_units": [
+    {
+      "work_unit_id": "142-01",
+      "status": "awaiting_commit",
+      "commit_proposal": {
+        "title": "fix(customer): handle null customer responses",
+        "body": "Handle null customer responses using the existing not-found behavior.\n\nPreserve successful response mapping and the public API contract.\nAdd regression coverage for null customer responses.\n\nRefs #142",
+        "format": "conventional",
+        "references": [
+          "#142"
+        ]
+      },
+      "change_boundary": {
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "files": [
+          {
+            "path": "src/customer/CustomerMapper.java",
+            "change_type": "modified",
+            "before_hash": "sha256:example-mapper-before",
+            "after_hash": "sha256:example-mapper-after"
+          },
+          {
+            "path": "tests/customer/CustomerMapperTest.java",
+            "change_type": "modified",
+            "before_hash": "sha256:example-test-before",
+            "after_hash": "sha256:example-test-after"
+          }
+        ],
+        "separation": "sequential_checkpoint",
+        "workspace_fingerprint": "sha256:example-delivery-workspace",
+        "patch_reference": null
+      },
+      "verification": [
+        {
+          "check_id": "customer-mapper-regression",
+          "execution_id": "exec-142-implement-01",
+          "status": "passed",
+          "evidence_id": "evidence-142-test-01",
+          "reason": null
+        },
+        {
+          "check_id": "customer-module-tests",
+          "execution_id": "exec-142-implement-01",
+          "status": "passed",
+          "evidence_id": "evidence-142-test-02",
+          "reason": null
+        },
+        {
+          "check_id": "public-api-review",
+          "execution_id": "exec-142-implement-01",
+          "status": "passed",
+          "evidence_id": "evidence-142-review-01",
+          "reason": null
+        }
+      ]
+    }
+  ],
+  "pull_request": {
+    "status": "proposed",
+    "title": "fix(customer): handle null customer responses",
+    "body": "## Summary\n\nCorrect null customer response handling while preserving existing successful response mapping.\n\n## Changes\n\n- Return the existing not-found result for null responses.\n- Preserve the public customer API contract.\n- Add regression coverage.\n\n## Verification\n\n- Customer mapper regression tests: passed.\n- Customer module tests: passed.\n- Public API compatibility review: passed.\n\n## Related issue\n\nRefs #142\n\n## Review notes\n\nConfirm that existing customer lookup consumers retain their expected behavior.",
+    "base_branch": "master",
+    "head_branch": "mb/fix/142-null-customer-response",
+    "included_work_units": [
+      "142-01"
+    ]
+  },
+  "publication": {
+    "stage": {
+      "status": "not_authorized"
+    },
+    "commit": {
+      "status": "not_authorized"
+    },
+    "push": {
+      "status": "not_authorized"
+    },
+    "create_pr": {
+      "status": "not_authorized"
+    },
+    "merge": {
+      "status": "not_authorized"
+    }
+  }
+}

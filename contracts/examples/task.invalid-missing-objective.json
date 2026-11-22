@@ -1,0 +1,67 @@
+
+{
+  "schema_version": "0.1",
+  "task": {
+    "id": "github:example/api#142",
+    "source": "github",
+    "repository": "example/api",
+    "issue_number": 142,
+    "title": "Handle null customer responses",
+    "acceptance_criteria": [
+      "Null customer responses return the existing not-found result.",
+      "Valid customer responses retain their current behavior."
+    ],
+    "constraints": [
+      "Preserve the public API.",
+      "Do not introduce new dependencies."
+    ]
+  },
+  "assessment": {
+    "profile": "quick",
+    "rationale": "Localized null-handling correction.",
+    "risk": "low",
+    "uncertainty": "low"
+  },
+  "evidence": [],
+  "preflight": {
+    "status": "unavailable",
+    "branch": "master",
+    "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace": "unknown",
+    "relevant_prs": [],
+    "findings": [
+      "Preflight has not been executed."
+    ]
+  },
+  "plan": {
+    "revision": 1,
+    "approach": "Investigate the null response handling and prepare a localized correction.",
+    "scope": [
+      "src/customer/CustomerMapper.java"
+    ],
+    "work_units": [
+      {
+        "id": "142-01",
+        "objective": "Correct null response mapping.",
+        "scope": [
+          "src/customer/CustomerMapper.java"
+        ],
+        "acceptance": [
+          "Null responses produce the expected not-found result."
+        ],
+        "dependencies": [],
+        "commit_required": true
+      }
+    ],
+    "verification": [
+      "Run relevant customer mapper tests."
+    ]
+  },
+  "approval": {
+    "status": "not_requested",
+    "required_actions": [
+      "investigate"
+    ],
+    "questions": []
+  }
+}
