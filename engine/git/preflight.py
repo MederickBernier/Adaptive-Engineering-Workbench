@@ -1,5 +1,5 @@
 """
-AEW local Git preflight coordinator.
+AEW Git preflight coordinator.
 
 Implements the local inspection portion of:
 - ADR-004: Workspace Consistency
@@ -16,8 +16,9 @@ It does not:
 - Inspect GitHub pull requests.
 - Authorize implementation.
 
-Local preflight cannot independently establish that
-implementation is safe to begin.
+Local inspection is the default. Optional remote baseline verification observes
+the configured integration ref and checks for its commit in the local object
+store. Full preflight also requires pull request coordination evidence.
 """
 
 from __future__ import annotations
@@ -25,11 +26,13 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
 
 from engine.config import AEWConfig, ConfigurationError
 from engine.git.repository import (
+    GitError,
     GitFileStatus,
     GitRepository,
     WorkspaceState,
@@ -73,6 +76,17 @@ class WorkspaceAssessment:
 
 
 @dataclass(frozen=True)
+class IntegrationBaseline:
+    remote: str
+    branch: str
+    tracking_commit: str | None
+    local_commit: str | None
+    remote_commit: str | None
+    observed_at: datetime | None
+    object_available: bool | None
+
+
+@dataclass(frozen=True)
 class LocalPreflightReport:
     repository: Path
     branch: str | None
@@ -85,8 +99,10 @@ class LocalPreflightReport:
     findings: tuple[PreflightFinding, ...]
     status: PreflightStatus
 
+    # The observed remote HEAD matches the tracking ref and exists locally.
     remote_freshness_verified: bool = False
     pull_requests_checked: bool = False
+    baseline: IntegrationBaseline | None = None
 
 
 class ScopeKind(str, Enum):
@@ -326,7 +342,7 @@ def assess_workspace(
 
 
 class GitPreflight:
-    """Coordinate local, read-only Git preflight."""
+    """Coordinate read-only Git preflight and optional baseline reconciliation."""
 
     def __init__(
         self,
@@ -336,6 +352,75 @@ class GitPreflight:
         self._repository = repository
         self._config = config
 
+    def _inspect_baseline(
+        self,
+        branch: str,
+        remote: str,
+        tracking: str | None,
+        findings: list[PreflightFinding],
+    ) -> IntegrationBaseline:
+        local_commit = self._repository.local_branch_commit(branch)
+        remote_ref = f"{remote}/{branch}"
+        try:
+            remote_commit = self._repository.remote_branch_commit(branch, remote=remote)
+        except GitError:
+            remote_commit = None
+            reason = "The integration remote could not be inspected."
+        else:
+            reason = "The configured branch was not found on the integration remote."
+
+        if remote_commit is None:
+            findings.append(
+                PreflightFinding(
+                    "INTEGRATION_REMOTE_UNAVAILABLE",
+                    FindingSeverity.WARNING,
+                    reason,
+                    (remote_ref,),
+                )
+            )
+            return IntegrationBaseline(
+                remote, branch, tracking, local_commit, None, None, None
+            )
+
+        observed_at = datetime.now(UTC)
+        object_available = self._repository.has_commit(remote_commit)
+        if not object_available:
+            findings.append(
+                PreflightFinding(
+                    "INTEGRATION_OBJECT_UNAVAILABLE",
+                    FindingSeverity.WARNING,
+                    "The observed remote commit is unavailable locally.",
+                    (remote_ref, remote_commit),
+                )
+            )
+        if tracking is not None and tracking != remote_commit:
+            findings.append(
+                PreflightFinding(
+                    "INTEGRATION_TRACKING_MISMATCH",
+                    FindingSeverity.WARNING,
+                    "The local tracking ref differs from the observed remote HEAD.",
+                    (remote_ref, tracking, remote_commit),
+                )
+            )
+        if local_commit is not None and local_commit != remote_commit:
+            findings.append(
+                PreflightFinding(
+                    "INTEGRATION_LOCAL_DIVERGENCE",
+                    FindingSeverity.WARNING,
+                    "The local integration branch differs from the observed remote HEAD.",
+                    (branch, local_commit, remote_commit),
+                )
+            )
+        return IntegrationBaseline(
+            remote,
+            branch,
+            tracking,
+            local_commit,
+            remote_commit,
+            observed_at,
+            object_available,
+        )
+
     def inspect(
         self,
         *,
@@ -344,8 +429,9 @@ class GitPreflight:
         title: str,
         intended_scope: Sequence[str],
         remote: str = "origin",
+        verify_remote: bool = False,
     ) -> LocalPreflightReport:
-        """Produce a local preflight report."""
+        """Inspect the workspace and optionally observe the remote integration HEAD."""
 
         snapshot = self._repository.snapshot()
 
@@ -427,6 +513,12 @@ class GitPreflight:
                 )
             )
 
+        baseline = None
+        if verify_remote:
+            baseline = self._inspect_baseline(
+                integration_branch, remote, integration_commit, findings
+            )
+
         proposed_branch: str | None = None
         branch_collision: bool | None = None
 
@@ -476,24 +568,24 @@ class GitPreflight:
                 )
             )
 
-        findings.extend(
-            [
+        if not verify_remote:
+            findings.append(
                 PreflightFinding(
                     code="REMOTE_FRESHNESS_NOT_VERIFIED",
                     severity=FindingSeverity.WARNING,
                     message=(
                         "Remote freshness has not been verified by local preflight."
                     ),
+                )
+            )
+        findings.append(
+            PreflightFinding(
+                code="PR_PREFLIGHT_NOT_PERFORMED",
+                severity=FindingSeverity.WARNING,
+                message=(
+                    "Active PRs and concurrent branch dependencies were not inspected."
                 ),
-                PreflightFinding(
-                    code="PR_PREFLIGHT_NOT_PERFORMED",
-                    severity=FindingSeverity.WARNING,
-                    message=(
-                        "Active PRs and concurrent branch "
-                        "dependencies were not inspected."
-                    ),
-                ),
-            ]
+            )
         )
 
         blocked = any(
@@ -513,4 +605,10 @@ class GitPreflight:
             workspace=workspace,
             findings=tuple(findings),
             status=status,
+            remote_freshness_verified=bool(
+                baseline
+                and baseline.object_available
+                and baseline.remote_commit == baseline.tracking_commit
+            ),
+            baseline=baseline,
         )

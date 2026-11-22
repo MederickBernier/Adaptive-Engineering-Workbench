@@ -369,6 +369,17 @@ def test_remote_tracking_branch(
         "rev-parse",
         "master",
     )
+    before = git(repository, "show-ref")
+    commit = git(repository, "rev-parse", "master")
+    assert adapter.remote_branch_commit("master") == commit
+    assert adapter.local_branch_commit("master") == commit
+    assert adapter.has_commit(commit)
+    assert adapter.remote_branch_commit("missing") is None
+    assert adapter.local_branch_commit("missing") is None
+    assert not adapter.has_commit("f" * 40)
+    with pytest.raises(GitCommandError, match="remote is not configured"):
+        adapter.remote_branch_commit("master", remote="missing")
+    assert git(repository, "show-ref") == before
 
 
 def test_renamed_file(

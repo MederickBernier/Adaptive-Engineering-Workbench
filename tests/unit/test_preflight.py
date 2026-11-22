@@ -31,6 +31,7 @@ from engine.git.preflight import (
     assess_workspace,
 )
 from engine.git.repository import (
+    GitCommandError,
     GitFileStatus,
     RepositorySnapshot,
     WorkspaceState,
@@ -75,6 +76,10 @@ class FakeGitRepository:
     integration_commit: str | None = INTEGRATION_COMMIT
     collision: bool = False
     valid_branch: bool = True
+    local_commit: str | None = INTEGRATION_COMMIT
+    remote_commit: str | None = INTEGRATION_COMMIT
+    remote_error: bool = False
+    object_available: bool = True
 
     def snapshot(self) -> RepositorySnapshot:
         return RepositorySnapshot(
@@ -105,6 +110,20 @@ class FakeGitRepository:
     ) -> bool:
         return self.valid_branch
 
+    def local_branch_commit(self, branch: str) -> str | None:
+        assert branch == "master"
+        return self.local_commit
+
+    def remote_branch_commit(self, branch: str, *, remote: str) -> str | None:
+        assert (remote, branch) == ("origin", "master")
+        if self.remote_error:
+            raise GitCommandError("Remote unavailable")
+        return self.remote_commit
+
+    def has_commit(self, commit: str) -> bool:
+        assert commit == self.remote_commit
+        return self.object_available
+
     def branch_exists(
         self,
         name: str,
@@ -119,6 +138,7 @@ def inspect(
     repository: FakeGitRepository,
     *,
     scope: list[str] | None = None,
+    verify_remote: bool = False,
 ):
     """Run preflight with consistent test inputs."""
 
@@ -132,6 +152,7 @@ def inspect(
         issue="142",
         title="Null customer response",
         intended_scope=(scope if scope is not None else ["src/customer/**"]),
+        verify_remote=verify_remote,
     )
 
 
@@ -139,6 +160,55 @@ def finding_codes(report: Any) -> set[str]:
     """Collect finding identifiers."""
 
     return {finding.code for finding in report.findings}
+
+
+def test_matching_remote_baseline_keeps_preflight_incomplete() -> None:
+    report = inspect(FakeGitRepository(), verify_remote=True)
+
+    assert report.baseline is not None
+    assert (
+        report.baseline.remote_commit
+        == report.baseline.tracking_commit
+        == INTEGRATION_COMMIT
+    )
+    assert report.baseline.local_commit == INTEGRATION_COMMIT
+    assert report.baseline.observed_at is not None
+    assert report.baseline.object_available is True
+    assert report.remote_freshness_verified is True
+    assert report.status == PreflightStatus.UNAVAILABLE
+    assert "PR_PREFLIGHT_NOT_PERFORMED" in finding_codes(report)
+
+
+def test_remote_baseline_reports_mismatches_and_missing_object() -> None:
+    report = inspect(
+        FakeGitRepository(remote_commit="c" * 40, object_available=False),
+        verify_remote=True,
+    )
+
+    assert report.baseline is not None
+    assert report.baseline.remote_commit == "c" * 40
+    assert report.baseline.object_available is False
+    assert report.remote_freshness_verified is False
+    assert {
+        "INTEGRATION_TRACKING_MISMATCH",
+        "INTEGRATION_LOCAL_DIVERGENCE",
+        "INTEGRATION_OBJECT_UNAVAILABLE",
+    } <= finding_codes(report)
+
+
+@pytest.mark.parametrize("remote_error", [True, False])
+def test_unavailable_remote_preserves_local_observations(remote_error: bool) -> None:
+    report = inspect(
+        FakeGitRepository(remote_error=remote_error, remote_commit=None),
+        verify_remote=True,
+    )
+
+    assert report.baseline is not None
+    assert report.baseline.tracking_commit == INTEGRATION_COMMIT
+    assert report.baseline.remote_commit is None
+    assert report.baseline.observed_at is None
+    assert report.remote_freshness_verified is False
+    assert "INTEGRATION_REMOTE_UNAVAILABLE" in finding_codes(report)
 
 
 def test_clean_workspace() -> None:

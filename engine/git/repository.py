@@ -155,6 +155,7 @@ class GitRepository:
         environment["GIT_OPTIONAL_LOCKS"] = "0"
         environment["GIT_TERMINAL_PROMPT"] = "0"
         environment["GIT_NO_REPLACE_OBJECTS"] = "1"
+        environment["GIT_NO_LAZY_FETCH"] = "1"
 
         try:
             result = subprocess.run(
@@ -456,3 +457,69 @@ class GitRepository:
             return None
 
         return result.stdout.strip()
+
+    def local_branch_commit(self, branch: str) -> str | None:
+        """Resolve the commit at an exact local branch ref."""
+        if not self.is_valid_branch_name(branch):
+            raise GitError(f"Invalid integration branch: {branch}")
+
+        result = self._run(
+            ["rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
+            check=False,
+        )
+        if result.returncode == 1:
+            return None
+        commit = result.stdout.strip()
+        if result.returncode != 0 or not re.fullmatch(
+            r"[0-9a-f]{40}|[0-9a-f]{64}", commit
+        ):
+            raise GitCommandError("Unable to resolve local integration branch")
+        return commit
+
+    def remote_branch_commit(
+        self, branch: str, *, remote: str = "origin"
+    ) -> str | None:
+        """Observe an exact branch on a configured remote without fetching objects."""
+        if not self.is_valid_branch_name(branch):
+            raise GitError(f"Invalid integration branch: {branch}")
+
+        configured = self._run(["remote"]).stdout.splitlines()
+        if not remote or remote not in configured:
+            raise GitCommandError("Integration remote is not configured")
+
+        reference = f"refs/heads/{branch}"
+        result = self._run(
+            [
+                "-c",
+                "protocol.ext.allow=never",
+                "ls-remote",
+                "--quiet",
+                "--exit-code",
+                "--refs",
+                "--",
+                remote,
+                reference,
+            ],
+            check=False,
+        )
+        if result.returncode == 2:
+            return None
+        if result.returncode != 0:
+            raise GitCommandError("Unable to query the integration remote")
+
+        commit, _, observed_ref = result.stdout.rstrip("\r\n").partition("\t")
+        if observed_ref != reference or not re.fullmatch(
+            r"[0-9a-f]{40}|[0-9a-f]{64}", commit
+        ):
+            raise GitCommandError("Unexpected remote integration reference response")
+        return commit
+
+    def has_commit(self, commit: str) -> bool:
+        """Check whether the exact object is locally available as a commit."""
+        if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit):
+            raise GitError("Expected a full Git object ID")
+        result = self._run(
+            ["rev-parse", "--verify", "--quiet", f"{commit}^{{commit}}"],
+            check=False,
+        )
+        return result.returncode == 0 and result.stdout.strip() == commit
