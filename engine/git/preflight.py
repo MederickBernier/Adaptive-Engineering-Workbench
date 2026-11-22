@@ -6,6 +6,8 @@ Implements the local inspection portion of:
 - ADR-004: Workspace Consistency
 - ADR-005: Branch Preflight and Naming
 
+Version: 0.1.1
+
 This module is read-only.
 
 It does not:
@@ -15,18 +17,19 @@ It does not:
 - Inspect GitHub pull requests.
 - Authorize implementation.
 
-A successful local assessment is not equivalent to
-a completed repository-wide preflight.
+Local preflight cannot independently establish that
+implementation is safe to begin.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Sequence
 
-from engine.config import AEWConfig
+from engine.config import AEWConfig, ConfigurationError
 from engine.git.repository import (
     GitFileStatus,
     GitRepository,
@@ -35,8 +38,6 @@ from engine.git.repository import (
 
 
 class PreflightStatus(str, Enum):
-    """Outcome of local preflight assessment."""
-
     PASSED = "passed"
     WARNING = "warning"
     BLOCKED = "blocked"
@@ -44,8 +45,6 @@ class PreflightStatus(str, Enum):
 
 
 class OverlapStatus(str, Enum):
-    """Relationship between workspace changes and task scope."""
-
     NONE = "none"
     NON_OVERLAPPING = "non_overlapping"
     OVERLAPPING = "overlapping"
@@ -53,8 +52,6 @@ class OverlapStatus(str, Enum):
 
 
 class FindingSeverity(str, Enum):
-    """Severity of a preflight finding."""
-
     INFO = "info"
     WARNING = "warning"
     BLOCKING = "blocking"
@@ -62,8 +59,6 @@ class FindingSeverity(str, Enum):
 
 @dataclass(frozen=True)
 class PreflightFinding:
-    """One evidence-backed local preflight finding."""
-
     code: str
     severity: FindingSeverity
     message: str
@@ -72,8 +67,6 @@ class PreflightFinding:
 
 @dataclass(frozen=True)
 class WorkspaceAssessment:
-    """Workspace status relative to the intended scope."""
-
     state: WorkspaceState
     overlap: OverlapStatus
     changed_paths: tuple[str, ...]
@@ -82,8 +75,6 @@ class WorkspaceAssessment:
 
 @dataclass(frozen=True)
 class LocalPreflightReport:
-    """Immutable local preflight observation."""
-
     repository: Path
     branch: str | None
     head_commit: str | None
@@ -95,52 +86,194 @@ class LocalPreflightReport:
     findings: tuple[PreflightFinding, ...]
     status: PreflightStatus
 
-    # Local inspection never establishes remote freshness
-    # or PR coordination completeness.
     remote_freshness_verified: bool = False
     pull_requests_checked: bool = False
 
 
-def _normalize_path(path: str) -> str:
+class ScopeKind(str, Enum):
+    FILE = "file"
+    DIRECTORY = "directory"
+    RECURSIVE = "recursive"
+
+
+@dataclass(frozen=True)
+class ScopeExpression:
     """
-    Normalize a repository-relative path for comparison.
-
-    This is only a lexical normalization helper.
-    It is not a filesystem authorization boundary.
-    """
-
-    return path.replace("\\", "/").removeprefix("./")
-
-
-def _path_matches_scope(
-    path: str,
-    scope: str,
-) -> bool:
-    """
-    Match a path against a simple task-scope expression.
+    Parsed repository-relative scope expression.
 
     Supported forms:
         src/customer/CustomerMapper.java
-        src/customer/**
         src/customer/
+        src/customer/**
 
-    This intentionally does not implement arbitrary glob
-    patterns or filesystem security enforcement.
+    No general glob support is implied.
     """
 
-    path = _normalize_path(path)
-    scope = _normalize_path(scope)
+    path: str
+    kind: ScopeKind
 
-    if scope.endswith("/**"):
-        prefix = scope[:-3].rstrip("/")
-        return path == prefix or path.startswith(
-            prefix + "/"
+    def matches(self, candidate: str) -> bool:
+        if self.kind == ScopeKind.FILE:
+            return candidate == self.path
+
+        if self.kind == ScopeKind.DIRECTORY:
+            return candidate.startswith(self.path + "/")
+
+        return (
+            candidate == self.path
+            or candidate.startswith(self.path + "/")
         )
 
-    if scope.endswith("/"):
-        return path.startswith(scope)
 
-    return path == scope
+class ScopeSyntaxError(ValueError):
+    """Raised when a scope expression is unsupported."""
+
+
+_DRIVE_PREFIX = re.compile(r"^[A-Za-z]:")
+_GLOB_CHARACTERS = frozenset("*?[]{}")
+
+
+def _validate_relative_path(
+    path: str,
+    *,
+    allow_trailing_slash: bool,
+) -> str:
+    """
+    Validate a lexical repository-relative path.
+
+    This does not resolve symlinks and must not be
+    used for filesystem write authorization.
+    """
+
+    if not isinstance(path, str) or not path:
+        raise ScopeSyntaxError("Scope path cannot be empty")
+
+    if "\x00" in path:
+        raise ScopeSyntaxError(
+            "NUL characters are not permitted"
+        )
+
+    if "\\" in path:
+        raise ScopeSyntaxError(
+            "Backslashes are not supported in scope paths"
+        )
+
+    if path.startswith("/") or _DRIVE_PREFIX.match(path):
+        raise ScopeSyntaxError(
+            "Absolute paths are not supported"
+        )
+
+    normalized = path
+
+    if allow_trailing_slash:
+        normalized = normalized.rstrip("/")
+
+    if not normalized:
+        raise ScopeSyntaxError(
+            "Scope path cannot reference repository root"
+        )
+
+    segments = normalized.split("/")
+
+    if any(
+        segment in ("", ".", "..")
+        for segment in segments
+    ):
+        raise ScopeSyntaxError(
+            "Empty, current, or parent path segments "
+            "are not permitted"
+        )
+
+    if any(
+        character in segment
+        for segment in segments
+        for character in _GLOB_CHARACTERS
+    ):
+        raise ScopeSyntaxError(
+            "Unsupported glob expression"
+        )
+
+    return normalized
+
+
+def parse_scope(expression: str) -> ScopeExpression:
+    """
+    Parse one supported scope expression.
+
+    Fail closed for unsupported patterns.
+    """
+
+    if not isinstance(expression, str):
+        raise ScopeSyntaxError(
+            "Scope expression must be a string"
+        )
+
+    if expression.endswith("/**"):
+        path = _validate_relative_path(
+            expression[:-3],
+            allow_trailing_slash=False,
+        )
+
+        return ScopeExpression(
+            path=path,
+            kind=ScopeKind.RECURSIVE,
+        )
+
+    if expression.endswith("/"):
+        path = _validate_relative_path(
+            expression,
+            allow_trailing_slash=True,
+        )
+
+        return ScopeExpression(
+            path=path,
+            kind=ScopeKind.DIRECTORY,
+        )
+
+    path = _validate_relative_path(
+        expression,
+        allow_trailing_slash=False,
+    )
+
+    return ScopeExpression(
+        path=path,
+        kind=ScopeKind.FILE,
+    )
+
+
+def _normalize_changed_path(path: str) -> str:
+    """
+    Validate a Git-reported repository-relative path.
+
+    Git paths are treated as data, not scope patterns.
+    """
+
+    if not isinstance(path, str) or not path:
+        raise ScopeSyntaxError(
+            "Changed path is invalid"
+        )
+
+    if (
+        "\x00" in path
+        or "\\" in path
+        or path.startswith("/")
+        or _DRIVE_PREFIX.match(path)
+    ):
+        raise ScopeSyntaxError(
+            "Changed path cannot be safely classified"
+        )
+
+    segments = path.split("/")
+
+    if any(
+        segment in ("", ".", "..")
+        for segment in segments
+    ):
+        raise ScopeSyntaxError(
+            "Changed path contains invalid segments"
+        )
+
+    return path
 
 
 def assess_workspace(
@@ -148,25 +281,35 @@ def assess_workspace(
     intended_scope: Sequence[str],
 ) -> WorkspaceAssessment:
     """
-    Compare Git changes with the intended task scope.
+    Assess path overlap conservatively.
 
-    This is a conservative local overlap assessment.
+    A syntactically unsupported scope or changed path
+    produces UNKNOWN, never NON_OVERLAPPING.
 
-    Unsupported scope patterns produce UNKNOWN rather
-    than being interpreted as non-overlapping.
+    This is an advisory overlap assessment, not a
+    filesystem security enforcement mechanism.
     """
 
     changed_paths: set[str] = set()
+    invalid_changed_path = False
 
     for change in changes:
-        changed_paths.add(
-            _normalize_path(change.path)
-        )
+        for raw_path in (
+            change.path,
+            change.original_path,
+        ):
+            if raw_path is None:
+                continue
 
-        if change.original_path:
-            changed_paths.add(
-                _normalize_path(change.original_path)
-            )
+            try:
+                changed_paths.add(
+                    _normalize_changed_path(raw_path)
+                )
+            except ScopeSyntaxError:
+                invalid_changed_path = True
+                changed_paths.add(raw_path)
+
+    ordered_paths = tuple(sorted(changed_paths))
 
     if not changes:
         return WorkspaceAssessment(
@@ -176,25 +319,26 @@ def assess_workspace(
             overlapping_paths=(),
         )
 
-    if not intended_scope:
+    if invalid_changed_path or not intended_scope:
         return WorkspaceAssessment(
             state=WorkspaceState.DIRTY,
             overlap=OverlapStatus.UNKNOWN,
-            changed_paths=tuple(sorted(changed_paths)),
+            changed_paths=ordered_paths,
             overlapping_paths=(),
         )
 
-    unsupported = any(
-        "*" in scope
-        and not scope.endswith("/**")
-        for scope in intended_scope
-    )
+    parsed_scopes: list[ScopeExpression] = []
 
-    if unsupported:
+    try:
+        for expression in intended_scope:
+            parsed_scopes.append(
+                parse_scope(expression)
+            )
+    except ScopeSyntaxError:
         return WorkspaceAssessment(
             state=WorkspaceState.DIRTY,
             overlap=OverlapStatus.UNKNOWN,
-            changed_paths=tuple(sorted(changed_paths)),
+            changed_paths=ordered_paths,
             overlapping_paths=(),
         )
 
@@ -202,26 +346,27 @@ def assess_workspace(
         path
         for path in changed_paths
         if any(
-            _path_matches_scope(path, scope)
-            for scope in intended_scope
+            scope.matches(path)
+            for scope in parsed_scopes
         )
     }
 
-    if overlapping:
-        overlap = OverlapStatus.OVERLAPPING
-    else:
-        overlap = OverlapStatus.NON_OVERLAPPING
+    overlap = (
+        OverlapStatus.OVERLAPPING
+        if overlapping
+        else OverlapStatus.NON_OVERLAPPING
+    )
 
     return WorkspaceAssessment(
         state=WorkspaceState.DIRTY,
         overlap=overlap,
-        changed_paths=tuple(sorted(changed_paths)),
+        changed_paths=ordered_paths,
         overlapping_paths=tuple(sorted(overlapping)),
     )
 
 
 class GitPreflight:
-    """Coordinate local, read-only Git preflight checks."""
+    """Coordinate local, read-only Git preflight."""
 
     def __init__(
         self,
@@ -240,7 +385,7 @@ class GitPreflight:
         intended_scope: Sequence[str],
         remote: str = "origin",
     ) -> LocalPreflightReport:
-        """Build a local preflight report."""
+        """Produce a local preflight report."""
 
         snapshot = self._repository.snapshot()
 
@@ -257,9 +402,7 @@ class GitPreflight:
                     code="GIT_UNBORN_HEAD",
                     severity=FindingSeverity.BLOCKING,
                     message=(
-                        "Repository has no HEAD commit. "
-                        "A verified integration baseline "
-                        "cannot be established."
+                        "Repository has no HEAD commit."
                     ),
                 )
             )
@@ -281,8 +424,8 @@ class GitPreflight:
                     code="WORKSPACE_OVERLAP",
                     severity=FindingSeverity.WARNING,
                     message=(
-                        "Existing workspace changes overlap "
-                        "the intended task scope."
+                        "Existing changes overlap the "
+                        "intended task scope."
                     ),
                     evidence=workspace.overlapping_paths,
                 )
@@ -294,8 +437,8 @@ class GitPreflight:
                     code="WORKSPACE_SCOPE_UNKNOWN",
                     severity=FindingSeverity.WARNING,
                     message=(
-                        "Workspace overlap cannot be "
-                        "determined from the supplied scope."
+                        "Workspace overlap could not be "
+                        "safely determined."
                     ),
                     evidence=workspace.changed_paths,
                 )
@@ -307,8 +450,8 @@ class GitPreflight:
                     code="WORKSPACE_NON_OVERLAPPING",
                     severity=FindingSeverity.INFO,
                     message=(
-                        "Existing workspace changes appear "
-                        "outside the intended task scope."
+                        "No path overlap was detected "
+                        "within the supported scope syntax."
                     ),
                     evidence=workspace.changed_paths,
                 )
@@ -331,9 +474,8 @@ class GitPreflight:
                     code="INTEGRATION_BASELINE_UNAVAILABLE",
                     severity=FindingSeverity.WARNING,
                     message=(
-                        "The configured integration branch "
-                        "has no locally known remote-tracking "
-                        "commit. Remote freshness is unknown."
+                        "No locally known remote-tracking "
+                        "integration commit is available."
                     ),
                     evidence=(
                         f"{remote}/{integration_branch}",
@@ -361,8 +503,8 @@ class GitPreflight:
                         code="INVALID_BRANCH_NAME",
                         severity=FindingSeverity.BLOCKING,
                         message=(
-                            "Generated branch name does not "
-                            "satisfy Git reference rules."
+                            "Generated branch name is "
+                            "invalid according to Git."
                         ),
                         evidence=(candidate,),
                     )
@@ -383,14 +525,14 @@ class GitPreflight:
                             code="BRANCH_COLLISION",
                             severity=FindingSeverity.BLOCKING,
                             message=(
-                                "Proposed task branch already "
-                                "exists in known Git references."
+                                "The proposed branch already "
+                                "exists in known references."
                             ),
                             evidence=(candidate,),
                         )
                     )
 
-        except ValueError as error:
+        except (ConfigurationError, ValueError) as error:
             findings.append(
                 PreflightFinding(
                     code="BRANCH_GENERATION_FAILED",
@@ -399,37 +541,37 @@ class GitPreflight:
                 )
             )
 
-        findings.append(
-            PreflightFinding(
-                code="REMOTE_FRESHNESS_NOT_VERIFIED",
-                severity=FindingSeverity.WARNING,
-                message=(
-                    "Local preflight does not fetch remote "
-                    "references or verify integration "
-                    "branch freshness."
+        findings.extend(
+            [
+                PreflightFinding(
+                    code="REMOTE_FRESHNESS_NOT_VERIFIED",
+                    severity=FindingSeverity.WARNING,
+                    message=(
+                        "Remote freshness has not been "
+                        "verified by local preflight."
+                    ),
                 ),
-            )
+                PreflightFinding(
+                    code="PR_PREFLIGHT_NOT_PERFORMED",
+                    severity=FindingSeverity.WARNING,
+                    message=(
+                        "Active PRs and concurrent branch "
+                        "dependencies were not inspected."
+                    ),
+                ),
+            ]
         )
 
-        findings.append(
-            PreflightFinding(
-                code="PR_PREFLIGHT_NOT_PERFORMED",
-                severity=FindingSeverity.WARNING,
-                message=(
-                    "Active pull requests and concurrent "
-                    "branch dependencies have not been "
-                    "inspected."
-                ),
-            )
-        )
-
-        if any(
+        blocked = any(
             finding.severity == FindingSeverity.BLOCKING
             for finding in findings
-        ):
-            status = PreflightStatus.BLOCKED
-        else:
-            status = PreflightStatus.UNAVAILABLE
+        )
+
+        status = (
+            PreflightStatus.BLOCKED
+            if blocked
+            else PreflightStatus.UNAVAILABLE
+        )
 
         return LocalPreflightReport(
             repository=snapshot.root,
