@@ -39,9 +39,9 @@ import json
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 
 class GitHubError(RuntimeError):
@@ -159,6 +159,15 @@ def _require_string(
     return value
 
 
+def _response_number(data: dict[str, Any]) -> int:
+    try:
+        return _require_positive_number(data.get("number"))
+    except ValueError as error:
+        raise GitHubDataError(
+            "Expected positive integer field: number"
+        ) from error
+
+
 def _require_commit(commit: str) -> str:
     if not _COMMIT_PATTERN.fullmatch(commit):
         raise GitHubDataError(
@@ -207,19 +216,17 @@ def _parse_issue(
 ) -> GitHubIssue:
     return GitHubIssue(
         repository=repository,
-        number=_require_positive_number(
-            data["number"]
-        ),
+        number=_response_number(data),
         title=_require_string(data, "title"),
         body=_require_string(data, "body"),
         state=_require_string(data, "state"),
         url=_require_string(data, "url"),
         labels=_string_names(
-            data["labels"],
+            data.get("labels"),
             key="labels",
         ),
         assignees=_string_names(
-            data["assignees"],
+            data.get("assignees"),
             key="assignees",
         ),
     )
@@ -274,9 +281,7 @@ def _parse_pull_request(
 
     return GitHubPullRequest(
         repository=repository,
-        number=_require_positive_number(
-            data["number"]
-        ),
+        number=_response_number(data),
         title=_require_string(data, "title"),
         body=_require_string(data, "body"),
         state=_require_string(data, "state"),
@@ -487,11 +492,7 @@ class GitHubClient:
                     "Invalid pull request list entry"
                 )
 
-            numbers.append(
-                _require_positive_number(
-                    item["number"]
-                )
-            )
+            numbers.append(_response_number(item))
 
         if len(numbers) != len(set(numbers)):
             raise GitHubDataError(
