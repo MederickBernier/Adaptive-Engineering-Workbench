@@ -23,6 +23,7 @@ from pathlib import Path
 import pytest
 
 from engine.git.repository import (
+    GitCommandError,
     GitRepository,
     RepositoryNotFoundError,
     WorkspaceState,
@@ -411,6 +412,48 @@ def test_unicode_filename(
 
     assert len(changes) == 1
     assert changes[0].path == filename
+
+
+@pytest.mark.parametrize("status", [b"R ", b"C "])
+def test_status_preserves_raw_rename_and_copy_paths(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, status: bytes
+) -> None:
+    adapter = GitRepository(repository)
+    output = status + b" destination\r\n.txt\0source-\xff.txt\0"
+
+    def run(command, **_kwargs):
+        return subprocess.CompletedProcess(command, 0, output, b"")
+
+    monkeypatch.setattr("engine.git.repository.subprocess.run", run)
+
+    (change,) = adapter.changed_files()
+
+    assert change.index_status == chr(status[0])
+    assert change.path == "destination\r\n.txt"
+    assert change.original_path == "source-\udcff.txt"
+
+
+@pytest.mark.parametrize(
+    ("output", "message"),
+    [
+        (b"?? file.txt", "Unterminated Git porcelain status entry"),
+        (b"R  renamed.txt\0", "Missing rename/copy source path"),
+        (b"C  copied.txt\0\0", "Missing rename/copy source path"),
+        (b"\0?? file.txt\0", "Unexpected Git porcelain status entry"),
+    ],
+)
+def test_status_rejects_incomplete_records(
+    repository: Path, monkeypatch: pytest.MonkeyPatch, output: bytes, message: str
+) -> None:
+    adapter = GitRepository(repository)
+
+    def run(command, **_kwargs):
+        return subprocess.CompletedProcess(command, 0, output, b"")
+
+    monkeypatch.setattr("engine.git.repository.subprocess.run", run)
+
+    with pytest.raises(GitCommandError, match=message):
+        adapter.changed_files()
 
 
 def test_adapter_does_not_modify_repository(

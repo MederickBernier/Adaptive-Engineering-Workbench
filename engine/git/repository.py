@@ -161,9 +161,6 @@ class GitRepository:
                 command,
                 cwd=cwd or self._requested_path,
                 capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
                 timeout=self._timeout,
                 env=environment,
                 check=False,
@@ -175,14 +172,19 @@ class GitRepository:
         except OSError as error:
             raise GitCommandError(f"Unable to execute Git: {error}") from error
 
+        # Git status emits raw path bytes, including embedded line endings.
+        stdout = result.stdout.decode("utf-8", errors="surrogateescape")
+        stderr = result.stderr.decode("utf-8", errors="replace")
         if check and result.returncode != 0:
             raise GitCommandError(
                 f"Git command failed ({result.returncode}): "
                 f"{' '.join(arguments)}\n"
-                f"{result.stderr.strip()}"
+                f"{stderr.strip()}"
             )
 
-        return result
+        return subprocess.CompletedProcess(
+            result.args, result.returncode, stdout, stderr
+        )
 
     def current_branch(self) -> str | None:
         """Return branch name, or None for detached HEAD."""
@@ -236,6 +238,8 @@ class GitRepository:
         )
 
         entries = result.stdout.split("\0")
+        if entries.pop() != "":
+            raise GitCommandError("Unterminated Git porcelain status entry")
         changes: list[GitFileStatus] = []
 
         index = 0
@@ -243,9 +247,6 @@ class GitRepository:
         while index < len(entries):
             entry = entries[index]
             index += 1
-
-            if not entry:
-                continue
 
             if len(entry) < 4 or entry[2] != " ":
                 raise GitCommandError("Unexpected Git porcelain status entry")
@@ -257,7 +258,7 @@ class GitRepository:
             original_path: str | None = None
 
             if index_status in ("R", "C") or worktree_status in ("R", "C"):
-                if index >= len(entries):
+                if index >= len(entries) or not entries[index]:
                     raise GitCommandError("Missing rename/copy source path")
 
                 original_path = entries[index]
