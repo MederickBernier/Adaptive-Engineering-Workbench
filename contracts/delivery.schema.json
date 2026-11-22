@@ -1,0 +1,357 @@
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/delivery.schema.json",
+  "title": "AEW Delivery Contract",
+  "description": "Commit and pull request delivery record for AEW v0.1.0.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "delivery_id",
+    "task_id",
+    "repository",
+    "plan_revision",
+    "work_units",
+    "pull_request",
+    "publication"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "delivery_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "work_units": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workUnitDelivery"
+      },
+      "default": []
+    },
+    "pull_request": {
+      "$ref": "#/$defs/pullRequest"
+    },
+    "publication": {
+      "$ref": "#/$defs/publication"
+    }
+  },
+  "$defs": {
+    "workUnitDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_unit_id",
+        "status",
+        "commit_proposal",
+        "change_boundary",
+        "verification"
+      ],
+      "properties": {
+        "work_unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "not_ready",
+            "commit_proposed",
+            "awaiting_commit",
+            "committed"
+          ]
+        },
+        "commit_proposal": {
+          "$ref": "#/$defs/commitProposal"
+        },
+        "change_boundary": {
+          "$ref": "#/$defs/changeBoundary"
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificationReference"
+          }
+        },
+        "commit": {
+          "$ref": "#/$defs/commitRecord"
+        }
+      }
+    },
+    "commitProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "body",
+        "format"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "conventional",
+            "repository",
+            "custom"
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "changeBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_commit",
+        "files",
+        "separation"
+      ],
+      "properties": {
+        "base_commit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/changedFile"
+          }
+        },
+        "separation": {
+          "enum": [
+            "sequential_checkpoint",
+            "isolated_patch",
+            "verified_commit"
+          ]
+        },
+        "workspace_fingerprint": {
+          "type": ["string", "null"]
+        },
+        "patch_reference": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "changedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "change_type"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_type": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed"
+          ]
+        },
+        "previous_path": {
+          "type": "string"
+        },
+        "before_hash": {
+          "type": ["string", "null"]
+        },
+        "after_hash": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "verificationReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "execution_id",
+        "status"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "incomplete"
+          ]
+        },
+        "evidence_id": {
+          "type": ["string", "null"]
+        },
+        "reason": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "commitRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha",
+        "verified"
+      ],
+      "properties": {
+        "sha": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pullRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "title",
+        "body",
+        "base_branch",
+        "head_branch"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_ready",
+            "proposed",
+            "open",
+            "merged",
+            "closed"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "base_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "head_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "included_work_units": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "commit",
+        "push",
+        "create_pr",
+        "merge"
+      ],
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "commit": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "push": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "create_pr": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "merge": {
+          "$ref": "#/$defs/operationStatus"
+        }
+      }
+    },
+    "operationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_authorized",
+            "authorized",
+            "executed",
+            "failed"
+          ]
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{40,64}$"
+    }
+  }
+}
