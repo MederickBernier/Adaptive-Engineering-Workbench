@@ -376,7 +376,17 @@ Documentation should explain the system's contracts and behavior without duplica
 
 AEW is currently in early development.
 
-Contribution guidelines, installation instructions, supported platforms, and development commands will be added as the implementation becomes operational.
+Use Python 3.13 and Git to work on the prototype. From the repository root, create a virtual environment and install the engine and development tools.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m ruff format --check .
+```
+
+On macOS or Linux, use `.venv/bin/python` for commands after creating the virtual environment. The Git integration tests use disposable local repositories. Live GitHub client calls require the GitHub CLI.
 
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 
