@@ -1,4 +1,3 @@
-
 """
 Integration tests for AEW's read-only Git adapter.
 
@@ -202,10 +201,7 @@ def test_multiple_changes(
 
     adapter = GitRepository(repository)
 
-    paths = {
-        change.path
-        for change in adapter.changed_files()
-    }
+    paths = {change.path for change in adapter.changed_files()}
 
     assert paths == {
         "README.md",
@@ -246,10 +242,7 @@ def test_local_branch_discovery(
 
     adapter = GitRepository(repository)
 
-    branches = {
-        branch.name: branch
-        for branch in adapter.local_branches()
-    }
+    branches = {branch.name: branch for branch in adapter.local_branches()}
 
     assert "master" in branches
     assert "mb/fix/142-null-response" in branches
@@ -279,9 +272,7 @@ def test_valid_branch_names(
 
     adapter = GitRepository(repository)
 
-    assert adapter.is_valid_branch_name(
-        branch_name
-    ) is True
+    assert adapter.is_valid_branch_name(branch_name) is True
 
 
 @pytest.mark.parametrize(
@@ -305,9 +296,7 @@ def test_invalid_branch_names(
 
     adapter = GitRepository(repository)
 
-    assert adapter.is_valid_branch_name(
-        branch_name
-    ) is False
+    assert adapter.is_valid_branch_name(branch_name) is False
 
 
 def test_local_branch_collision(
@@ -322,9 +311,7 @@ def test_local_branch_collision(
     adapter = GitRepository(repository)
 
     assert adapter.branch_exists(name) is True
-    assert adapter.branch_exists(
-        "mb/fix/999-other"
-    ) is False
+    assert adapter.branch_exists("mb/fix/999-other") is False
 
 
 def test_remote_tracking_branch(
@@ -371,20 +358,12 @@ def test_remote_tracking_branch(
 
     branches = adapter.remote_branches()
 
-    names = {
-        branch.name
-        for branch in branches
-    }
+    names = {branch.name for branch in branches}
 
     assert "origin/master" in names
-    assert (
-        "origin/mb/fix/142-null-response"
-        in names
-    )
+    assert "origin/mb/fix/142-null-response" in names
 
-    assert adapter.integration_branch_commit(
-        "master"
-    ) == git(
+    assert adapter.integration_branch_commit("master") == git(
         repository,
         "rev-parse",
         "master",
@@ -482,6 +461,4 @@ def test_missing_integration_branch(
 
     adapter = GitRepository(repository)
 
-    assert adapter.integration_branch_commit(
-        "master"
-    ) is None
+    assert adapter.integration_branch_commit("master") is None

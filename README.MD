@@ -381,12 +381,14 @@ Use Python 3.13 and Git to work on the prototype. From the repository root, crea
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m pytest
-.\.venv\Scripts\python.exe -m ruff check .
-.\.venv\Scripts\python.exe -m ruff format --check .
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m ruff check engine tests
+.\.venv\Scripts\python.exe -m ruff format --check engine tests
 ```
 
 On macOS or Linux, use `.venv/bin/python` for commands after creating the virtual environment. The Git integration tests use disposable local repositories. Live GitHub client calls require the GitHub CLI.
+
+GitHub Actions runs these checks on Linux and Windows for pushes to `master` and pull requests targeting it.
 
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 

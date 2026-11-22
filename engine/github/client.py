@@ -1,4 +1,3 @@
-
 """
 AEW read-only GitHub adapter.
 
@@ -60,13 +59,9 @@ class GitHubUnavailableError(GitHubError):
     """Raised when GitHub cannot be inspected."""
 
 
-_REPOSITORY_PATTERN = re.compile(
-    r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
-)
+_REPOSITORY_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 
-_COMMIT_PATTERN = re.compile(
-    r"^[0-9a-fA-F]{40,64}$"
-)
+_COMMIT_PATTERN = re.compile(r"^[0-9a-fA-F]{40,64}$")
 
 _ALLOWED_COMMANDS = {
     ("issue", "view"),
@@ -115,21 +110,15 @@ def _require_repository(repository: str) -> str:
     """Validate an explicit owner/repository identifier."""
 
     if not _REPOSITORY_PATTERN.fullmatch(repository):
-        raise ValueError(
-            "Repository must use the form owner/name"
-        )
+        raise ValueError("Repository must use the form owner/name")
 
     owner, name = repository.split("/", 1)
 
     if owner in (".", "..") or name in (".", ".."):
-        raise ValueError(
-            "Repository identifier contains invalid segments"
-        )
+        raise ValueError("Repository identifier contains invalid segments")
 
     if owner.endswith(".") or name.endswith("."):
-        raise ValueError(
-            "Repository identifier contains invalid segments"
-        )
+        raise ValueError("Repository identifier contains invalid segments")
 
     return repository
 
@@ -138,9 +127,7 @@ def _require_positive_number(number: int) -> int:
     """Validate a GitHub issue or pull request number."""
 
     if type(number) is not int or number < 1:
-        raise ValueError(
-            "GitHub issue/PR number must be positive"
-        )
+        raise ValueError("GitHub issue/PR number must be positive")
 
     return number
 
@@ -152,9 +139,7 @@ def _require_string(
     value = data.get(key)
 
     if not isinstance(value, str):
-        raise GitHubDataError(
-            f"Expected string field: {key}"
-        )
+        raise GitHubDataError(f"Expected string field: {key}")
 
     return value
 
@@ -163,16 +148,12 @@ def _response_number(data: dict[str, Any]) -> int:
     try:
         return _require_positive_number(data.get("number"))
     except ValueError as error:
-        raise GitHubDataError(
-            "Expected positive integer field: number"
-        ) from error
+        raise GitHubDataError("Expected positive integer field: number") from error
 
 
 def _require_commit(commit: str) -> str:
     if not _COMMIT_PATTERN.fullmatch(commit):
-        raise GitHubDataError(
-            f"Invalid Git commit identifier: {commit}"
-        )
+        raise GitHubDataError(f"Invalid Git commit identifier: {commit}")
 
     return commit
 
@@ -185,25 +166,19 @@ def _string_names(
     """Extract name/login fields from GitHub objects."""
 
     if not isinstance(values, list):
-        raise GitHubDataError(
-            f"Expected list field: {key}"
-        )
+        raise GitHubDataError(f"Expected list field: {key}")
 
     names: list[str] = []
 
     for item in values:
         if not isinstance(item, dict):
-            raise GitHubDataError(
-                f"Invalid entry in {key}"
-            )
+            raise GitHubDataError(f"Invalid entry in {key}")
 
         field = "login" if key == "assignees" else "name"
         value = item.get(field)
 
         if not isinstance(value, str):
-            raise GitHubDataError(
-                f"Invalid {field} in {key}"
-            )
+            raise GitHubDataError(f"Invalid {field} in {key}")
 
         names.append(value)
 
@@ -241,30 +216,22 @@ def _parse_pull_request(
     files = data.get("files")
 
     if not isinstance(files, list):
-        raise GitHubDataError(
-            "Pull request files are unavailable"
-        )
+        raise GitHubDataError("Pull request files are unavailable")
 
     paths: list[str] = []
 
     for file in files:
         if not isinstance(file, dict):
-            raise GitHubDataError(
-                "Invalid pull request file entry"
-            )
+            raise GitHubDataError("Invalid pull request file entry")
 
         path = file.get("path")
 
         if not isinstance(path, str) or not path:
-            raise GitHubDataError(
-                "Invalid pull request file path"
-            )
+            raise GitHubDataError("Invalid pull request file path")
 
         paths.append(path)
 
-    head_repository = data.get(
-        "headRepositoryOwner"
-    )
+    head_repository = data.get("headRepositoryOwner")
 
     head_owner: str | None = None
 
@@ -292,13 +259,9 @@ def _parse_pull_request(
         ),
         head_branch=head_branch,
         head_repository=(
-            f"{head_owner}/{head_branch}"
-            if head_owner is not None
-            else None
+            f"{head_owner}/{head_branch}" if head_owner is not None else None
         ),
-        head_commit=_require_commit(
-            _require_string(data, "headRefOid")
-        ),
+        head_commit=_require_commit(_require_string(data, "headRefOid")),
         draft=data["isDraft"],
         changed_files=tuple(sorted(set(paths))),
     )
@@ -315,19 +278,13 @@ class GitHubClient:
         timeout_seconds: int = 20,
         max_response_bytes: int = 8_000_000,
     ) -> None:
-        self.repository = _require_repository(
-            repository
-        )
+        self.repository = _require_repository(repository)
 
         if timeout_seconds < 1:
-            raise ValueError(
-                "timeout_seconds must be positive"
-            )
+            raise ValueError("timeout_seconds must be positive")
 
         if max_response_bytes < 1024:
-            raise ValueError(
-                "max_response_bytes must be >= 1024"
-            )
+            raise ValueError("max_response_bytes must be >= 1024")
 
         self._executable = executable
         self._timeout = timeout_seconds
@@ -340,24 +297,16 @@ class GitHubClient:
         """Execute one explicitly allowed read-only command."""
 
         if not arguments:
-            raise GitHubCommandError(
-                "Empty GitHub command"
-            )
+            raise GitHubCommandError("Empty GitHub command")
 
         prefix = tuple(arguments[:2])
 
-        allowed = (
-            prefix in _ALLOWED_COMMANDS
-            or (
-                arguments[0] == "api"
-                and ("api",) in _ALLOWED_COMMANDS
-            )
+        allowed = prefix in _ALLOWED_COMMANDS or (
+            arguments[0] == "api" and ("api",) in _ALLOWED_COMMANDS
         )
 
         if not allowed:
-            raise GitHubCommandError(
-                "GitHub operation is not allowlisted"
-            )
+            raise GitHubCommandError("GitHub operation is not allowlisted")
 
         environment = os.environ.copy()
 
@@ -378,13 +327,9 @@ class GitHubClient:
                 "GitHub CLI executable is unavailable"
             ) from error
         except subprocess.TimeoutExpired as error:
-            raise GitHubUnavailableError(
-                "GitHub CLI request timed out"
-            ) from error
+            raise GitHubUnavailableError("GitHub CLI request timed out") from error
         except OSError as error:
-            raise GitHubUnavailableError(
-                "Unable to execute GitHub CLI"
-            ) from error
+            raise GitHubUnavailableError("Unable to execute GitHub CLI") from error
 
         if result.returncode != 0:
             raise GitHubCommandError(
@@ -396,21 +341,15 @@ class GitHubClient:
             )
 
         if len(result.stdout) > self._max_response_bytes:
-            raise GitHubDataError(
-                "GitHub response exceeds configured limit"
-            )
+            raise GitHubDataError("GitHub response exceeds configured limit")
 
         try:
-            return json.loads(
-                result.stdout.decode("utf-8")
-            )
+            return json.loads(result.stdout.decode("utf-8"))
         except (
             UnicodeDecodeError,
             json.JSONDecodeError,
         ) as error:
-            raise GitHubDataError(
-                "GitHub returned invalid JSON"
-            ) from error
+            raise GitHubDataError("GitHub returned invalid JSON") from error
 
     def issue(self, number: int) -> GitHubIssue:
         """Retrieve one issue."""
@@ -425,17 +364,12 @@ class GitHubClient:
                 "--repo",
                 self.repository,
                 "--json",
-                (
-                    "number,title,body,state,url,"
-                    "labels,assignees"
-                ),
+                ("number,title,body,state,url,labels,assignees"),
             ]
         )
 
         if not isinstance(data, dict):
-            raise GitHubDataError(
-                "Expected issue object"
-            )
+            raise GitHubDataError("Expected issue object")
 
         return _parse_issue(
             self.repository,
@@ -455,9 +389,7 @@ class GitHubClient:
         """
 
         if limit < 1 or limit > 1000:
-            raise ValueError(
-                "PR limit must be between 1 and 1000"
-            )
+            raise ValueError("PR limit must be between 1 and 1000")
 
         data = self._run_json(
             [
@@ -475,29 +407,21 @@ class GitHubClient:
         )
 
         if not isinstance(data, list):
-            raise GitHubDataError(
-                "Expected pull request list"
-            )
+            raise GitHubDataError("Expected pull request list")
 
         if len(data) >= limit:
-            raise GitHubDataError(
-                "Pull request enumeration may be incomplete"
-            )
+            raise GitHubDataError("Pull request enumeration may be incomplete")
 
         numbers: list[int] = []
 
         for item in data:
             if not isinstance(item, dict):
-                raise GitHubDataError(
-                    "Invalid pull request list entry"
-                )
+                raise GitHubDataError("Invalid pull request list entry")
 
             numbers.append(_response_number(item))
 
         if len(numbers) != len(set(numbers)):
-            raise GitHubDataError(
-                "Duplicate pull request numbers"
-            )
+            raise GitHubDataError("Duplicate pull request numbers")
 
         return tuple(numbers)
 
@@ -527,17 +451,13 @@ class GitHubClient:
         )
 
         if not isinstance(data, dict):
-            raise GitHubDataError(
-                "Expected pull request object"
-            )
+            raise GitHubDataError("Expected pull request object")
 
         if not isinstance(
             data.get("isDraft"),
             bool,
         ):
-            raise GitHubDataError(
-                "Expected boolean isDraft"
-            )
+            raise GitHubDataError("Expected boolean isDraft")
 
         return _parse_pull_request(
             self.repository,
@@ -551,14 +471,9 @@ class GitHubClient:
     ) -> tuple[GitHubPullRequest, ...]:
         """Retrieve complete metadata for open PRs."""
 
-        numbers = self.open_pull_request_numbers(
-            limit=limit
-        )
+        numbers = self.open_pull_request_numbers(limit=limit)
 
-        return tuple(
-            self.pull_request(number)
-            for number in numbers
-        )
+        return tuple(self.pull_request(number) for number in numbers)
 
     def remote_branch_commit(
         self,
@@ -575,22 +490,15 @@ class GitHubClient:
             or not branch
             or branch.startswith("/")
             or ".." in branch
-            or any(
-                character in branch
-                for character in ("\x00", "\n", "\r")
-            )
+            or any(character in branch for character in ("\x00", "\n", "\r"))
         ):
-            raise ValueError(
-                "Invalid remote branch name"
-            )
+            raise ValueError("Invalid remote branch name")
 
         owner, name = self.repository.split("/", 1)
 
         # GitHub's Git ref endpoint accepts a branch
         # name with slash-separated path components.
-        endpoint = (
-            f"repos/{owner}/{name}/git/ref/heads/{branch}"
-        )
+        endpoint = f"repos/{owner}/{name}/git/ref/heads/{branch}"
 
         data = self._run_json(
             [
@@ -602,20 +510,14 @@ class GitHubClient:
         )
 
         if not isinstance(data, dict):
-            raise GitHubDataError(
-                "Expected Git reference object"
-            )
+            raise GitHubDataError("Expected Git reference object")
 
         obj = data.get("object")
 
         if not isinstance(obj, dict):
-            raise GitHubDataError(
-                "Missing Git reference object"
-            )
+            raise GitHubDataError("Missing Git reference object")
 
-        return _require_commit(
-            _require_string(obj, "sha")
-        )
+        return _require_commit(_require_string(obj, "sha"))
 
 
 def assess_pr_overlap(
@@ -635,21 +537,13 @@ def assess_pr_overlap(
     results: list[PullRequestOverlap] = []
 
     for pull_request in pull_requests:
-        overlapping = tuple(
-            sorted(
-                intended.intersection(
-                    pull_request.changed_files
-                )
-            )
-        )
+        overlapping = tuple(sorted(intended.intersection(pull_request.changed_files)))
 
         results.append(
             PullRequestOverlap(
                 pull_request_number=pull_request.number,
                 overlapping_paths=overlapping,
-                possible_overlap=(
-                    not intended or bool(overlapping)
-                ),
+                possible_overlap=(not intended or bool(overlapping)),
             )
         )
 

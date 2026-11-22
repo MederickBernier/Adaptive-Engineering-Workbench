@@ -1,4 +1,3 @@
-
 """
 AEW local Git preflight coordinator.
 
@@ -24,10 +23,10 @@ implementation is safe to begin.
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Sequence
 
 from engine.config import AEWConfig, ConfigurationError
 from engine.git.repository import (
@@ -119,10 +118,7 @@ class ScopeExpression:
         if self.kind == ScopeKind.DIRECTORY:
             return candidate.startswith(self.path + "/")
 
-        return (
-            candidate == self.path
-            or candidate.startswith(self.path + "/")
-        )
+        return candidate == self.path or candidate.startswith(self.path + "/")
 
 
 class ScopeSyntaxError(ValueError):
@@ -149,19 +145,13 @@ def _validate_relative_path(
         raise ScopeSyntaxError("Scope path cannot be empty")
 
     if "\x00" in path:
-        raise ScopeSyntaxError(
-            "NUL characters are not permitted"
-        )
+        raise ScopeSyntaxError("NUL characters are not permitted")
 
     if "\\" in path:
-        raise ScopeSyntaxError(
-            "Backslashes are not supported in scope paths"
-        )
+        raise ScopeSyntaxError("Backslashes are not supported in scope paths")
 
     if path.startswith("/") or _DRIVE_PREFIX.match(path):
-        raise ScopeSyntaxError(
-            "Absolute paths are not supported"
-        )
+        raise ScopeSyntaxError("Absolute paths are not supported")
 
     normalized = path
 
@@ -169,29 +159,19 @@ def _validate_relative_path(
         normalized = normalized.rstrip("/")
 
     if not normalized:
-        raise ScopeSyntaxError(
-            "Scope path cannot reference repository root"
-        )
+        raise ScopeSyntaxError("Scope path cannot reference repository root")
 
     segments = normalized.split("/")
 
-    if any(
-        segment in ("", ".", "..")
-        for segment in segments
-    ):
+    if any(segment in ("", ".", "..") for segment in segments):
         raise ScopeSyntaxError(
-            "Empty, current, or parent path segments "
-            "are not permitted"
+            "Empty, current, or parent path segments are not permitted"
         )
 
     if any(
-        character in segment
-        for segment in segments
-        for character in _GLOB_CHARACTERS
+        character in segment for segment in segments for character in _GLOB_CHARACTERS
     ):
-        raise ScopeSyntaxError(
-            "Unsupported glob expression"
-        )
+        raise ScopeSyntaxError("Unsupported glob expression")
 
     return normalized
 
@@ -204,9 +184,7 @@ def parse_scope(expression: str) -> ScopeExpression:
     """
 
     if not isinstance(expression, str):
-        raise ScopeSyntaxError(
-            "Scope expression must be a string"
-        )
+        raise ScopeSyntaxError("Scope expression must be a string")
 
     if expression.endswith("/**"):
         path = _validate_relative_path(
@@ -249,9 +227,7 @@ def _normalize_changed_path(path: str) -> str:
     """
 
     if not isinstance(path, str) or not path:
-        raise ScopeSyntaxError(
-            "Changed path is invalid"
-        )
+        raise ScopeSyntaxError("Changed path is invalid")
 
     if (
         "\x00" in path
@@ -259,19 +235,12 @@ def _normalize_changed_path(path: str) -> str:
         or path.startswith("/")
         or _DRIVE_PREFIX.match(path)
     ):
-        raise ScopeSyntaxError(
-            "Changed path cannot be safely classified"
-        )
+        raise ScopeSyntaxError("Changed path cannot be safely classified")
 
     segments = path.split("/")
 
-    if any(
-        segment in ("", ".", "..")
-        for segment in segments
-    ):
-        raise ScopeSyntaxError(
-            "Changed path contains invalid segments"
-        )
+    if any(segment in ("", ".", "..") for segment in segments):
+        raise ScopeSyntaxError("Changed path contains invalid segments")
 
     return path
 
@@ -302,9 +271,7 @@ def assess_workspace(
                 continue
 
             try:
-                changed_paths.add(
-                    _normalize_changed_path(raw_path)
-                )
+                changed_paths.add(_normalize_changed_path(raw_path))
             except ScopeSyntaxError:
                 invalid_changed_path = True
                 changed_paths.add(raw_path)
@@ -331,9 +298,7 @@ def assess_workspace(
 
     try:
         for expression in intended_scope:
-            parsed_scopes.append(
-                parse_scope(expression)
-            )
+            parsed_scopes.append(parse_scope(expression))
     except ScopeSyntaxError:
         return WorkspaceAssessment(
             state=WorkspaceState.DIRTY,
@@ -345,16 +310,11 @@ def assess_workspace(
     overlapping = {
         path
         for path in changed_paths
-        if any(
-            scope.matches(path)
-            for scope in parsed_scopes
-        )
+        if any(scope.matches(path) for scope in parsed_scopes)
     }
 
     overlap = (
-        OverlapStatus.OVERLAPPING
-        if overlapping
-        else OverlapStatus.NON_OVERLAPPING
+        OverlapStatus.OVERLAPPING if overlapping else OverlapStatus.NON_OVERLAPPING
     )
 
     return WorkspaceAssessment(
@@ -401,9 +361,7 @@ class GitPreflight:
                 PreflightFinding(
                     code="GIT_UNBORN_HEAD",
                     severity=FindingSeverity.BLOCKING,
-                    message=(
-                        "Repository has no HEAD commit."
-                    ),
+                    message=("Repository has no HEAD commit."),
                 )
             )
 
@@ -412,9 +370,7 @@ class GitPreflight:
                 PreflightFinding(
                     code="GIT_DETACHED_HEAD",
                     severity=FindingSeverity.WARNING,
-                    message=(
-                        "Repository is in detached HEAD state."
-                    ),
+                    message=("Repository is in detached HEAD state."),
                 )
             )
 
@@ -423,10 +379,7 @@ class GitPreflight:
                 PreflightFinding(
                     code="WORKSPACE_OVERLAP",
                     severity=FindingSeverity.WARNING,
-                    message=(
-                        "Existing changes overlap the "
-                        "intended task scope."
-                    ),
+                    message=("Existing changes overlap the intended task scope."),
                     evidence=workspace.overlapping_paths,
                 )
             )
@@ -436,10 +389,7 @@ class GitPreflight:
                 PreflightFinding(
                     code="WORKSPACE_SCOPE_UNKNOWN",
                     severity=FindingSeverity.WARNING,
-                    message=(
-                        "Workspace overlap could not be "
-                        "safely determined."
-                    ),
+                    message=("Workspace overlap could not be safely determined."),
                     evidence=workspace.changed_paths,
                 )
             )
@@ -457,15 +407,11 @@ class GitPreflight:
                 )
             )
 
-        integration_branch = (
-            self._config.integration_branch
-        )
+        integration_branch = self._config.integration_branch
 
-        integration_commit = (
-            self._repository.integration_branch_commit(
-                integration_branch,
-                remote=remote,
-            )
+        integration_commit = self._repository.integration_branch_commit(
+            integration_branch,
+            remote=remote,
         )
 
         if integration_commit is None:
@@ -477,9 +423,7 @@ class GitPreflight:
                         "No locally known remote-tracking "
                         "integration commit is available."
                     ),
-                    evidence=(
-                        f"{remote}/{integration_branch}",
-                    ),
+                    evidence=(f"{remote}/{integration_branch}",),
                 )
             )
 
@@ -487,36 +431,27 @@ class GitPreflight:
         branch_collision: bool | None = None
 
         try:
-            candidate = (
-                self._config.generate_branch_name(
-                    task_type=task_type,
-                    issue=issue,
-                    title=title,
-                )
+            candidate = self._config.generate_branch_name(
+                task_type=task_type,
+                issue=issue,
+                title=title,
             )
 
-            if not self._repository.is_valid_branch_name(
-                candidate
-            ):
+            if not self._repository.is_valid_branch_name(candidate):
                 findings.append(
                     PreflightFinding(
                         code="INVALID_BRANCH_NAME",
                         severity=FindingSeverity.BLOCKING,
-                        message=(
-                            "Generated branch name is "
-                            "invalid according to Git."
-                        ),
+                        message=("Generated branch name is invalid according to Git."),
                         evidence=(candidate,),
                     )
                 )
             else:
                 proposed_branch = candidate
 
-                branch_collision = (
-                    self._repository.branch_exists(
-                        candidate,
-                        remote=remote,
-                    )
+                branch_collision = self._repository.branch_exists(
+                    candidate,
+                    remote=remote,
                 )
 
                 if branch_collision:
@@ -547,8 +482,7 @@ class GitPreflight:
                     code="REMOTE_FRESHNESS_NOT_VERIFIED",
                     severity=FindingSeverity.WARNING,
                     message=(
-                        "Remote freshness has not been "
-                        "verified by local preflight."
+                        "Remote freshness has not been verified by local preflight."
                     ),
                 ),
                 PreflightFinding(
@@ -563,15 +497,10 @@ class GitPreflight:
         )
 
         blocked = any(
-            finding.severity == FindingSeverity.BLOCKING
-            for finding in findings
+            finding.severity == FindingSeverity.BLOCKING for finding in findings
         )
 
-        status = (
-            PreflightStatus.BLOCKED
-            if blocked
-            else PreflightStatus.UNAVAILABLE
-        )
+        status = PreflightStatus.BLOCKED if blocked else PreflightStatus.UNAVAILABLE
 
         return LocalPreflightReport(
             repository=snapshot.root,

@@ -1,4 +1,3 @@
-
 """
 AEW configuration management.
 
@@ -24,9 +23,10 @@ from __future__ import annotations
 import copy
 import json
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 
 class ConfigurationError(ValueError):
@@ -81,9 +81,7 @@ ALLOWED_BRANCH_TOKENS = {
     "slug",
 }
 
-PREFIX_PATTERN = re.compile(
-    r"^(?:[a-zA-Z0-9][a-zA-Z0-9._-]*/)*$"
-)
+PREFIX_PATTERN = re.compile(r"^(?:[a-zA-Z0-9][a-zA-Z0-9._-]*/)*$")
 
 SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
 
@@ -95,9 +93,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         return {}
 
     if not path.is_file():
-        raise ConfigurationError(
-            f"Configuration path is not a file: {path}"
-        )
+        raise ConfigurationError(f"Configuration path is not a file: {path}")
 
     try:
         with path.open("r", encoding="utf-8") as file:
@@ -108,9 +104,7 @@ def _load_json(path: Path) -> dict[str, Any]:
         ) from error
 
     if not isinstance(data, dict):
-        raise ConfigurationError(
-            f"Configuration root must be an object: {path}"
-        )
+        raise ConfigurationError(f"Configuration root must be an object: {path}")
 
     return data
 
@@ -126,10 +120,7 @@ def _merge(
     for key, value in override.items():
         existing = result.get(key)
 
-        if (
-            isinstance(existing, dict)
-            and isinstance(value, dict)
-        ):
+        if isinstance(existing, dict) and isinstance(value, dict):
             result[key] = _merge(existing, value)
         else:
             result[key] = copy.deepcopy(value)
@@ -144,9 +135,7 @@ def _require_bool(
     """Require an actual boolean, not a truthy value."""
 
     if not isinstance(value, bool):
-        raise ConfigurationError(
-            f"{field} must be a boolean"
-        )
+        raise ConfigurationError(f"{field} must be a boolean")
 
     return value
 
@@ -158,9 +147,7 @@ def _require_string(
     """Require a nonempty string."""
 
     if not isinstance(value, str) or not value.strip():
-        raise ConfigurationError(
-            f"{field} must be a nonempty string"
-        )
+        raise ConfigurationError(f"{field} must be a nonempty string")
 
     return value
 
@@ -174,14 +161,11 @@ def _validate_branch_config(
     pattern = branches.get("naming_pattern")
 
     if not isinstance(prefix, str):
-        raise ConfigurationError(
-            "git.branches.prefix must be a string"
-        )
+        raise ConfigurationError("git.branches.prefix must be a string")
 
     if prefix and not PREFIX_PATTERN.fullmatch(prefix):
         raise ConfigurationError(
-            "Invalid branch prefix. "
-            "Expected a namespace such as 'mb/'."
+            "Invalid branch prefix. Expected a namespace such as 'mb/'."
         )
 
     pattern = _require_string(
@@ -189,22 +173,17 @@ def _validate_branch_config(
         "git.branches.naming_pattern",
     )
 
-    tokens = set(
-        re.findall(r"\{([^{}]+)\}", pattern)
-    )
+    tokens = set(re.findall(r"\{([^{}]+)\}", pattern))
 
     unknown = tokens - ALLOWED_BRANCH_TOKENS
 
     if unknown:
         raise ConfigurationError(
-            "Unknown branch naming tokens: "
-            + ", ".join(sorted(unknown))
+            "Unknown branch naming tokens: " + ", ".join(sorted(unknown))
         )
 
     if "{slug}" not in pattern:
-        raise ConfigurationError(
-            "Branch naming pattern must contain {slug}"
-        )
+        raise ConfigurationError("Branch naming pattern must contain {slug}")
 
     _require_bool(
         branches.get("check_remote_collision"),
@@ -225,9 +204,7 @@ def validate_config(
     git = config.get("git")
 
     if not isinstance(git, dict):
-        raise ConfigurationError(
-            "git configuration must be an object"
-        )
+        raise ConfigurationError("git configuration must be an object")
 
     _require_string(
         git.get("integration_branch"),
@@ -237,25 +214,19 @@ def validate_config(
     branches = git.get("branches")
 
     if not isinstance(branches, dict):
-        raise ConfigurationError(
-            "git.branches must be an object"
-        )
+        raise ConfigurationError("git.branches must be an object")
 
     _validate_branch_config(branches)
 
     delivery = config.get("delivery")
 
     if not isinstance(delivery, dict):
-        raise ConfigurationError(
-            "delivery configuration must be an object"
-        )
+        raise ConfigurationError("delivery configuration must be an object")
 
     commits = delivery.get("commits")
 
     if not isinstance(commits, dict):
-        raise ConfigurationError(
-            "delivery.commits must be an object"
-        )
+        raise ConfigurationError("delivery.commits must be an object")
 
     for field in ("stage", "execute"):
         _require_bool(
@@ -266,9 +237,7 @@ def validate_config(
     pull_requests = delivery.get("pull_requests")
 
     if not isinstance(pull_requests, dict):
-        raise ConfigurationError(
-            "delivery.pull_requests must be an object"
-        )
+        raise ConfigurationError("delivery.pull_requests must be an object")
 
     for field in ("create", "merge"):
         _require_bool(
@@ -279,9 +248,7 @@ def validate_config(
     push = delivery.get("push")
 
     if not isinstance(push, dict):
-        raise ConfigurationError(
-            "delivery.push must be an object"
-        )
+        raise ConfigurationError("delivery.push must be an object")
 
     _require_bool(
         push.get("execute"),
@@ -325,9 +292,7 @@ class AEWConfig:
             r"[a-zA-Z0-9_-]+",
             branch_type,
         ):
-            raise ConfigurationError(
-                f"Invalid branch type: {branch_type}"
-            )
+            raise ConfigurationError(f"Invalid branch type: {branch_type}")
 
         issue_token = re.sub(
             r"[^a-zA-Z0-9_-]",
@@ -336,9 +301,7 @@ class AEWConfig:
         ).strip("-")
 
         if not issue_token:
-            raise ConfigurationError(
-                "Issue identifier cannot be empty"
-            )
+            raise ConfigurationError("Issue identifier cannot be empty")
 
         slug = SLUG_PATTERN.sub(
             "-",
@@ -346,9 +309,7 @@ class AEWConfig:
         ).strip("-")
 
         if not slug:
-            raise ConfigurationError(
-                "Cannot generate branch slug from title"
-            )
+            raise ConfigurationError("Cannot generate branch slug from title")
 
         values = {
             "prefix": self.branch_prefix,
@@ -365,9 +326,7 @@ class AEWConfig:
             ) from error
 
         if len(branch) > 100:
-            raise ConfigurationError(
-                "Generated branch name exceeds 100 characters"
-            )
+            raise ConfigurationError("Generated branch name exceeds 100 characters")
 
         return branch
 
@@ -380,18 +339,9 @@ def load_config(
     """Load, merge, and validate AEW configuration."""
 
     if user_config_path is None:
-        user_config_path = (
-            Path.home()
-            / ".config"
-            / "aew"
-            / "config.json"
-        )
+        user_config_path = Path.home() / ".config" / "aew" / "config.json"
 
-    project_config_path = (
-        repository_root
-        / ".aew"
-        / "config.json"
-    )
+    project_config_path = repository_root / ".aew" / "config.json"
 
     config = copy.deepcopy(DEFAULT_CONFIG)
 

@@ -1,4 +1,3 @@
-
 """
 Unit tests for AEW local Git preflight.
 
@@ -23,7 +22,7 @@ from typing import Any
 
 import pytest
 
-from engine.config import AEWConfig, DEFAULT_CONFIG
+from engine.config import DEFAULT_CONFIG, AEWConfig
 from engine.git.preflight import (
     FindingSeverity,
     GitPreflight,
@@ -36,7 +35,6 @@ from engine.git.repository import (
     RepositorySnapshot,
     WorkspaceState,
 )
-
 
 COMMIT = "a" * 40
 INTEGRATION_COMMIT = "b" * 40
@@ -64,9 +62,7 @@ def config() -> AEWConfig:
 
     import copy
 
-    return AEWConfig(
-        values=copy.deepcopy(DEFAULT_CONFIG)
-    )
+    return AEWConfig(values=copy.deepcopy(DEFAULT_CONFIG))
 
 
 @dataclass
@@ -88,9 +84,7 @@ class FakeGitRepository:
             head_commit=self.head,
             detached=self.branch is None,
             workspace_state=(
-                WorkspaceState.DIRTY
-                if self.changes
-                else WorkspaceState.CLEAN
+                WorkspaceState.DIRTY if self.changes else WorkspaceState.CLEAN
             ),
             changes=self.changes,
         )
@@ -137,21 +131,14 @@ def inspect(
         task_type="bug",
         issue="142",
         title="Null customer response",
-        intended_scope=(
-            scope
-            if scope is not None
-            else ["src/customer/**"]
-        ),
+        intended_scope=(scope if scope is not None else ["src/customer/**"]),
     )
 
 
 def finding_codes(report: Any) -> set[str]:
     """Collect finding identifiers."""
 
-    return {
-        finding.code
-        for finding in report.findings
-    }
+    return {finding.code for finding in report.findings}
 
 
 def test_clean_workspace() -> None:
@@ -178,14 +165,9 @@ def test_non_overlapping_workspace() -> None:
 
     assert assessment.state == WorkspaceState.DIRTY
 
-    assert (
-        assessment.overlap
-        == OverlapStatus.NON_OVERLAPPING
-    )
+    assert assessment.overlap == OverlapStatus.NON_OVERLAPPING
 
-    assert assessment.changed_paths == (
-        "frontend/styles.css",
-    )
+    assert assessment.changed_paths == ("frontend/styles.css",)
 
     assert assessment.overlapping_paths == ()
 
@@ -203,9 +185,7 @@ def test_overlapping_workspace() -> None:
 
     assert assessment.overlap == OverlapStatus.OVERLAPPING
 
-    assert assessment.overlapping_paths == (
-        "src/customer/CustomerMapper.java",
-    )
+    assert assessment.overlapping_paths == ("src/customer/CustomerMapper.java",)
 
 
 def test_exact_file_scope() -> None:
@@ -308,13 +288,9 @@ def test_local_preflight_is_incomplete() -> None:
     assert report.remote_freshness_verified is False
     assert report.pull_requests_checked is False
 
-    assert "REMOTE_FRESHNESS_NOT_VERIFIED" in finding_codes(
-        report
-    )
+    assert "REMOTE_FRESHNESS_NOT_VERIFIED" in finding_codes(report)
 
-    assert "PR_PREFLIGHT_NOT_PERFORMED" in finding_codes(
-        report
-    )
+    assert "PR_PREFLIGHT_NOT_PERFORMED" in finding_codes(report)
 
 
 def test_proposed_branch_name() -> None:
@@ -322,9 +298,7 @@ def test_proposed_branch_name() -> None:
 
     report = inspect(FakeGitRepository())
 
-    assert report.proposed_branch == (
-        "mb/fix/142-null-customer-response"
-    )
+    assert report.proposed_branch == ("mb/fix/142-null-customer-response")
 
     assert report.branch_collision is False
 
@@ -332,9 +306,7 @@ def test_proposed_branch_name() -> None:
 def test_existing_branch_collision() -> None:
     """Existing task branches must be reported."""
 
-    report = inspect(
-        FakeGitRepository(collision=True)
-    )
+    report = inspect(FakeGitRepository(collision=True))
 
     assert report.status == PreflightStatus.BLOCKED
     assert report.branch_collision is True
@@ -345,9 +317,7 @@ def test_existing_branch_collision() -> None:
 def test_invalid_generated_branch() -> None:
     """Git-invalid branch names block branch creation."""
 
-    report = inspect(
-        FakeGitRepository(valid_branch=False)
-    )
+    report = inspect(FakeGitRepository(valid_branch=False))
 
     assert report.status == PreflightStatus.BLOCKED
     assert report.proposed_branch is None
@@ -358,16 +328,11 @@ def test_invalid_generated_branch() -> None:
 def test_missing_integration_baseline() -> None:
     """Missing remote-tracking integration refs are reported."""
 
-    report = inspect(
-        FakeGitRepository(integration_commit=None)
-    )
+    report = inspect(FakeGitRepository(integration_commit=None))
 
     assert report.integration_commit is None
 
-    assert (
-        "INTEGRATION_BASELINE_UNAVAILABLE"
-        in finding_codes(report)
-    )
+    assert "INTEGRATION_BASELINE_UNAVAILABLE" in finding_codes(report)
 
     assert report.status == PreflightStatus.UNAVAILABLE
 
@@ -375,9 +340,7 @@ def test_missing_integration_baseline() -> None:
 def test_unborn_head() -> None:
     """Repositories without commits cannot proceed."""
 
-    report = inspect(
-        FakeGitRepository(head=None)
-    )
+    report = inspect(FakeGitRepository(head=None))
 
     assert report.status == PreflightStatus.BLOCKED
     assert "GIT_UNBORN_HEAD" in finding_codes(report)
@@ -386,9 +349,7 @@ def test_unborn_head() -> None:
 def test_detached_head() -> None:
     """Detached HEAD must be explicitly reported."""
 
-    report = inspect(
-        FakeGitRepository(branch=None)
-    )
+    report = inspect(FakeGitRepository(branch=None))
 
     assert "GIT_DETACHED_HEAD" in finding_codes(report)
 
@@ -399,43 +360,24 @@ def test_overlapping_changes_reported() -> None:
     """Overlapping paths appear in preflight evidence."""
 
     report = inspect(
-        FakeGitRepository(
-            changes=(
-                change("src/customer/CustomerMapper.java"),
-            )
-        )
+        FakeGitRepository(changes=(change("src/customer/CustomerMapper.java"),))
     )
 
     assert "WORKSPACE_OVERLAP" in finding_codes(report)
 
-    finding = next(
-        item
-        for item in report.findings
-        if item.code == "WORKSPACE_OVERLAP"
-    )
+    finding = next(item for item in report.findings if item.code == "WORKSPACE_OVERLAP")
 
     assert finding.severity == FindingSeverity.WARNING
 
-    assert finding.evidence == (
-        "src/customer/CustomerMapper.java",
-    )
+    assert finding.evidence == ("src/customer/CustomerMapper.java",)
 
 
 def test_non_overlapping_changes_reported() -> None:
     """Unrelated workspace edits are informational."""
 
-    report = inspect(
-        FakeGitRepository(
-            changes=(
-                change("frontend/styles.css"),
-            )
-        )
-    )
+    report = inspect(FakeGitRepository(changes=(change("frontend/styles.css"),)))
 
-    assert (
-        "WORKSPACE_NON_OVERLAPPING"
-        in finding_codes(report)
-    )
+    assert "WORKSPACE_NON_OVERLAPPING" in finding_codes(report)
 
     assert report.status == PreflightStatus.UNAVAILABLE
 
@@ -444,18 +386,11 @@ def test_unknown_workspace_overlap_reported() -> None:
     """Unknown scope must be reported explicitly."""
 
     report = inspect(
-        FakeGitRepository(
-            changes=(
-                change("src/customer/CustomerMapper.java"),
-            )
-        ),
+        FakeGitRepository(changes=(change("src/customer/CustomerMapper.java"),)),
         scope=[],
     )
 
-    assert (
-        "WORKSPACE_SCOPE_UNKNOWN"
-        in finding_codes(report)
-    )
+    assert "WORKSPACE_SCOPE_UNKNOWN" in finding_codes(report)
 
     assert report.workspace.overlap == OverlapStatus.UNKNOWN
 
@@ -465,18 +400,10 @@ def test_no_local_preflight_can_claim_passed() -> None:
 
     scenarios = [
         FakeGitRepository(),
-        FakeGitRepository(
-            changes=(change("frontend/styles.css"),)
-        ),
-        FakeGitRepository(
-            integration_commit=None
-        ),
-        FakeGitRepository(
-            collision=True
-        ),
-        FakeGitRepository(
-            branch=None
-        ),
+        FakeGitRepository(changes=(change("frontend/styles.css"),)),
+        FakeGitRepository(integration_commit=None),
+        FakeGitRepository(collision=True),
+        FakeGitRepository(branch=None),
     ]
 
     for repository in scenarios:

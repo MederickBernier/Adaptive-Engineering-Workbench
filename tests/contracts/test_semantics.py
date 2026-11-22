@@ -1,4 +1,3 @@
-
 """
 AEW cross-contract semantic validation tests.
 
@@ -66,10 +65,7 @@ def delivery() -> dict[str, Any]:
 def work_unit_ids(task: dict[str, Any]) -> set[str]:
     """Collect declared Work Unit identifiers."""
 
-    return {
-        unit["id"]
-        for unit in task["plan"]["work_units"]
-    }
+    return {unit["id"] for unit in task["plan"]["work_units"]}
 
 
 def validate_task_context(
@@ -83,10 +79,7 @@ def validate_task_context(
     if context["identity"]["task_id"] != task["task"]["id"]:
         errors.append("Context task identity mismatch")
 
-    if (
-        context["identity"]["repository"]
-        != task["task"]["repository"]
-    ):
+    if context["identity"]["repository"] != task["task"]["repository"]:
         errors.append("Context repository mismatch")
 
     return errors
@@ -108,13 +101,9 @@ def validate_task_approval(
 
     known_units = work_unit_ids(task)
 
-    for unit_id in approval["scope"].get(
-        "work_unit_ids", []
-    ):
+    for unit_id in approval["scope"].get("work_unit_ids", []):
         if unit_id not in known_units:
-            errors.append(
-                f"Unknown approved Work Unit: {unit_id}"
-            )
+            errors.append(f"Unknown approved Work Unit: {unit_id}")
 
     return errors
 
@@ -168,39 +157,28 @@ def validate_execution_bindings(
     ):
         errors.append("Execution and context revision mismatch")
 
-    if (
-        execution["workspace"]["workspace_id"]
-        != approval["workspace"].get("workspace_id")
+    if execution["workspace"]["workspace_id"] != approval["workspace"].get(
+        "workspace_id"
     ):
         errors.append("Execution workspace identity mismatch")
 
-    requested = set(
-        execution["authorization"]["required_operations"]
-    )
+    requested = set(execution["authorization"]["required_operations"])
 
-    permitted = set(
-        approval["authorization"]["operations"]
-    )
+    permitted = set(approval["authorization"]["operations"])
 
     unauthorized = requested - permitted
 
     if unauthorized:
         errors.append(
-            "Unauthorized operations requested: "
-            + ", ".join(sorted(unauthorized))
+            "Unauthorized operations requested: " + ", ".join(sorted(unauthorized))
         )
 
     if approval["status"] != "active":
         errors.append("Approval grant is not active")
 
-    approved_units = set(
-        approval["scope"].get("work_unit_ids", [])
-    )
+    approved_units = set(approval["scope"].get("work_unit_ids", []))
 
-    if (
-        approved_units
-        and execution["work_unit_id"] not in approved_units
-    ):
+    if approved_units and execution["work_unit_id"] not in approved_units:
         errors.append("Work Unit outside approval scope")
 
     return errors
@@ -225,27 +203,18 @@ def validate_delivery_references(
 
     known_units = work_unit_ids(task)
 
-    delivered_units = [
-        unit["work_unit_id"]
-        for unit in delivery["work_units"]
-    ]
+    delivered_units = [unit["work_unit_id"] for unit in delivery["work_units"]]
 
     for unit_id in delivered_units:
         if unit_id not in known_units:
-            errors.append(
-                f"Delivery references unknown Work Unit: {unit_id}"
-            )
+            errors.append(f"Delivery references unknown Work Unit: {unit_id}")
 
     if len(delivered_units) != len(set(delivered_units)):
         errors.append("Duplicate Work Unit delivery")
 
-    for unit_id in delivery["pull_request"].get(
-        "included_work_units", []
-    ):
+    for unit_id in delivery["pull_request"].get("included_work_units", []):
         if unit_id not in delivered_units:
-            errors.append(
-                f"PR references undelivered Work Unit: {unit_id}"
-            )
+            errors.append(f"PR references undelivered Work Unit: {unit_id}")
 
     return errors
 
@@ -293,22 +262,28 @@ def test_positive_execution_bindings(
     approval: dict[str, Any],
     execution: dict[str, Any],
 ) -> None:
-    assert validate_execution_bindings(
-        task,
-        context,
-        approval,
-        execution,
-    ) == []
+    assert (
+        validate_execution_bindings(
+            task,
+            context,
+            approval,
+            execution,
+        )
+        == []
+    )
 
 
 def test_positive_delivery_references(
     task: dict[str, Any],
     delivery: dict[str, Any],
 ) -> None:
-    assert validate_delivery_references(
-        task,
-        delivery,
-    ) == []
+    assert (
+        validate_delivery_references(
+            task,
+            delivery,
+        )
+        == []
+    )
 
 
 @pytest.mark.parametrize(
@@ -375,8 +350,7 @@ def test_execution_cannot_expand_operations(
     )
 
     assert any(
-        error.startswith("Unauthorized operations requested:")
-        for error in errors
+        error.startswith("Unauthorized operations requested:") for error in errors
     )
 
 
@@ -441,9 +415,7 @@ def test_duplicate_delivery_work_unit(
 ) -> None:
     mutated = copy.deepcopy(delivery)
 
-    mutated["work_units"].append(
-        copy.deepcopy(mutated["work_units"][0])
-    )
+    mutated["work_units"].append(copy.deepcopy(mutated["work_units"][0]))
 
     errors = validate_delivery_references(
         task,
@@ -469,6 +441,5 @@ def test_execution_scope_cannot_expand_exact_paths() -> None:
     )
 
     assert errors == [
-        "Execution path not explicitly approved: "
-        "src/admin/AdminService.java"
+        "Execution path not explicitly approved: src/admin/AdminService.java"
     ]

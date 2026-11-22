@@ -1,4 +1,3 @@
-
 """
 AEW JSON Schema contract validation.
 
@@ -45,10 +44,7 @@ SCHEMA_FILES = (
     "delivery.schema.json",
 )
 
-SCHEMA_PATHS = tuple(
-    CONTRACTS_DIR / filename
-    for filename in SCHEMA_FILES
-)
+SCHEMA_PATHS = tuple(CONTRACTS_DIR / filename for filename in SCHEMA_FILES)
 
 
 def load_json(path: Path) -> Any:
@@ -61,9 +57,7 @@ def load_json(path: Path) -> Any:
 
         for key, value in pairs:
             if key in result:
-                raise ValueError(
-                    f"Duplicate JSON property: {key}"
-                )
+                raise ValueError(f"Duplicate JSON property: {key}")
 
             result[key] = value
 
@@ -91,22 +85,12 @@ def discover_fixtures(
     if not EXAMPLES_DIR.is_dir():
         return []
 
-    fixtures = sorted(
-        EXAMPLES_DIR.glob(f"{contract}.*.json")
-    )
+    fixtures = sorted(EXAMPLES_DIR.glob(f"{contract}.*.json"))
 
     if invalid:
-        return [
-            path
-            for path in fixtures
-            if ".invalid-" in path.name
-        ]
+        return [path for path in fixtures if ".invalid-" in path.name]
 
-    return [
-        path
-        for path in fixtures
-        if ".invalid-" not in path.name
-    ]
+    return [path for path in fixtures if ".invalid-" not in path.name]
 
 
 @pytest.mark.parametrize(
@@ -117,22 +101,16 @@ def discover_fixtures(
 def test_schema_is_valid(schema_path: Path) -> None:
     """Each schema must be a valid Draft 2020-12 schema."""
 
-    assert schema_path.is_file(), (
-        f"Missing contract schema: {schema_path}"
-    )
+    assert schema_path.is_file(), f"Missing contract schema: {schema_path}"
 
     schema = load_json(schema_path)
 
-    assert schema.get("$schema") == (
-        "https://json-schema.org/draft/2020-12/schema"
-    )
+    assert schema.get("$schema") == ("https://json-schema.org/draft/2020-12/schema")
 
     try:
         Draft202012Validator.check_schema(schema)
     except SchemaError as error:
-        pytest.fail(
-            f"Invalid schema {schema_path.name}: {error}"
-        )
+        pytest.fail(f"Invalid schema {schema_path.name}: {error}")
 
 
 @pytest.mark.parametrize(
@@ -143,9 +121,7 @@ def test_schema_is_valid(schema_path: Path) -> None:
 def test_positive_fixtures(schema_path: Path) -> None:
     """Every contract needs valid example coverage."""
 
-    assert schema_path.is_file(), (
-        f"Missing contract schema: {schema_path}"
-    )
+    assert schema_path.is_file(), f"Missing contract schema: {schema_path}"
 
     contract = schema_name(schema_path)
 
@@ -175,10 +151,7 @@ def test_positive_fixtures(schema_path: Path) -> None:
 
         assert not errors, (
             f"Positive fixture failed: {fixture_path.name}\n"
-            + "\n".join(
-                f"- {error.json_path}: {error.message}"
-                for error in errors
-            )
+            + "\n".join(f"- {error.json_path}: {error.message}" for error in errors)
         )
 
 
@@ -190,9 +163,7 @@ def test_positive_fixtures(schema_path: Path) -> None:
 def test_negative_fixtures(schema_path: Path) -> None:
     """Negative fixtures must be rejected by their schema."""
 
-    assert schema_path.is_file(), (
-        f"Missing contract schema: {schema_path}"
-    )
+    assert schema_path.is_file(), f"Missing contract schema: {schema_path}"
 
     contract = schema_name(schema_path)
 
@@ -202,9 +173,7 @@ def test_negative_fixtures(schema_path: Path) -> None:
     )
 
     if not fixtures:
-        pytest.skip(
-            f"No negative fixtures defined for {contract}"
-        )
+        pytest.skip(f"No negative fixtures defined for {contract}")
 
     schema = load_json(schema_path)
     validator = Draft202012Validator(schema)
@@ -212,14 +181,9 @@ def test_negative_fixtures(schema_path: Path) -> None:
     for fixture_path in fixtures:
         instance = load_json(fixture_path)
 
-        errors = list(
-            validator.iter_errors(instance)
-        )
+        errors = list(validator.iter_errors(instance))
 
-        assert errors, (
-            f"Negative fixture unexpectedly passed: "
-            f"{fixture_path.name}"
-        )
+        assert errors, f"Negative fixture unexpectedly passed: {fixture_path.name}"
 
 
 def test_schema_identifiers_are_unique() -> None:
@@ -249,15 +213,11 @@ def test_fixture_names_reference_known_contracts() -> None:
     if not EXAMPLES_DIR.is_dir():
         return
 
-    known_contracts = {
-        schema_name(path)
-        for path in SCHEMA_PATHS
-    }
+    known_contracts = {schema_name(path) for path in SCHEMA_PATHS}
 
     for fixture_path in EXAMPLES_DIR.glob("*.json"):
         contract = fixture_path.name.split(".", 1)[0]
 
         assert contract in known_contracts, (
-            f"Unknown contract fixture: "
-            f"{fixture_path.name}"
+            f"Unknown contract fixture: {fixture_path.name}"
         )

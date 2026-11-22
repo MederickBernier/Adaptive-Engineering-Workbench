@@ -1,4 +1,3 @@
-
 """
 AEW read-only Git repository adapter.
 
@@ -30,10 +29,10 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Sequence
 
 
 class GitError(RuntimeError):
@@ -65,24 +64,15 @@ class GitFileStatus:
 
     @property
     def untracked(self) -> bool:
-        return (
-            self.index_status == "?"
-            and self.worktree_status == "?"
-        )
+        return self.index_status == "?" and self.worktree_status == "?"
 
     @property
     def conflicted(self) -> bool:
         return (
             "U" in self.index_status
             or "U" in self.worktree_status
-            or (
-                self.index_status == "A"
-                and self.worktree_status == "A"
-            )
-            or (
-                self.index_status == "D"
-                and self.worktree_status == "D"
-            )
+            or (self.index_status == "A" and self.worktree_status == "A")
+            or (self.index_status == "D" and self.worktree_status == "D")
         )
 
 
@@ -119,9 +109,7 @@ class GitRepository:
         timeout_seconds: int = 15,
     ) -> None:
         if timeout_seconds < 1:
-            raise ValueError(
-                "timeout_seconds must be positive"
-            )
+            raise ValueError("timeout_seconds must be positive")
 
         self._git = git_executable
         self._timeout = timeout_seconds
@@ -135,22 +123,17 @@ class GitRepository:
 
         if root.returncode != 0:
             raise RepositoryNotFoundError(
-                f"Not inside a Git working tree: "
-                f"{self._requested_path}"
+                f"Not inside a Git working tree: {self._requested_path}"
             )
 
-        self.root = Path(
-            root.stdout.strip()
-        ).resolve()
+        self.root = Path(root.stdout.strip()).resolve()
 
         git_dir = self._run(
             ["rev-parse", "--absolute-git-dir"],
             cwd=self.root,
         )
 
-        self.git_directory = Path(
-            git_dir.stdout.strip()
-        ).resolve()
+        self.git_directory = Path(git_dir.stdout.strip()).resolve()
 
     def _run(
         self,
@@ -186,17 +169,11 @@ class GitRepository:
                 check=False,
             )
         except FileNotFoundError as error:
-            raise GitCommandError(
-                f"Git executable not found: {self._git}"
-            ) from error
+            raise GitCommandError(f"Git executable not found: {self._git}") from error
         except subprocess.TimeoutExpired as error:
-            raise GitCommandError(
-                f"Git command timed out: {arguments}"
-            ) from error
+            raise GitCommandError(f"Git command timed out: {arguments}") from error
         except OSError as error:
-            raise GitCommandError(
-                f"Unable to execute Git: {error}"
-            ) from error
+            raise GitCommandError(f"Unable to execute Git: {error}") from error
 
         if check and result.returncode != 0:
             raise GitCommandError(
@@ -219,9 +196,7 @@ class GitRepository:
             return None
 
         if result.returncode != 0:
-            raise GitCommandError(
-                "Unable to resolve current branch"
-            )
+            raise GitCommandError("Unable to resolve current branch")
 
         return result.stdout.strip()
 
@@ -242,9 +217,7 @@ class GitRepository:
             r"[0-9a-fA-F]{40,64}",
             commit,
         ):
-            raise GitCommandError(
-                f"Unexpected Git object ID: {commit}"
-            )
+            raise GitCommandError(f"Unexpected Git object ID: {commit}")
 
         return commit
 
@@ -275,9 +248,7 @@ class GitRepository:
                 continue
 
             if len(entry) < 4 or entry[2] != " ":
-                raise GitCommandError(
-                    "Unexpected Git porcelain status entry"
-                )
+                raise GitCommandError("Unexpected Git porcelain status entry")
 
             index_status = entry[0]
             worktree_status = entry[1]
@@ -285,14 +256,9 @@ class GitRepository:
 
             original_path: str | None = None
 
-            if (
-                index_status in ("R", "C")
-                or worktree_status in ("R", "C")
-            ):
+            if index_status in ("R", "C") or worktree_status in ("R", "C"):
                 if index >= len(entries):
-                    raise GitCommandError(
-                        "Missing rename/copy source path"
-                    )
+                    raise GitCommandError("Missing rename/copy source path")
 
                 original_path = entries[index]
                 index += 1
@@ -311,11 +277,7 @@ class GitRepository:
     def workspace_state(self) -> WorkspaceState:
         """Return whether Git reports local changes."""
 
-        return (
-            WorkspaceState.DIRTY
-            if self.changed_files()
-            else WorkspaceState.CLEAN
-        )
+        return WorkspaceState.DIRTY if self.changed_files() else WorkspaceState.CLEAN
 
     def snapshot(self) -> RepositorySnapshot:
         """Capture a read-only repository observation."""
@@ -330,11 +292,7 @@ class GitRepository:
             branch=branch,
             head_commit=commit,
             detached=branch is None,
-            workspace_state=(
-                WorkspaceState.DIRTY
-                if changes
-                else WorkspaceState.CLEAN
-            ),
+            workspace_state=(WorkspaceState.DIRTY if changes else WorkspaceState.CLEAN),
             changes=changes,
         )
 
@@ -358,9 +316,7 @@ class GitRepository:
             name, separator, commit = line.partition("\0")
 
             if not separator:
-                raise GitCommandError(
-                    "Invalid local branch record"
-                )
+                raise GitCommandError("Invalid local branch record")
 
             branches.append(
                 GitBranch(
@@ -395,9 +351,7 @@ class GitRepository:
             name, separator, commit = line.partition("\0")
 
             if not separator:
-                raise GitCommandError(
-                    "Invalid remote branch record"
-                )
+                raise GitCommandError("Invalid remote branch record")
 
             branches.append(
                 GitBranch(
@@ -434,9 +388,7 @@ class GitRepository:
             return True
 
         if local.returncode != 1:
-            raise GitCommandError(
-                "Unable to inspect local branch reference"
-            )
+            raise GitCommandError("Unable to inspect local branch reference")
 
         remote_result = self._run(
             [
@@ -452,9 +404,7 @@ class GitRepository:
             return True
 
         if remote_result.returncode != 1:
-            raise GitCommandError(
-                "Unable to inspect remote-tracking reference"
-            )
+            raise GitCommandError("Unable to inspect remote-tracking reference")
 
         return False
 
@@ -488,9 +438,7 @@ class GitRepository:
         """
 
         if not self.is_valid_branch_name(branch):
-            raise GitError(
-                f"Invalid integration branch: {branch}"
-            )
+            raise GitError(f"Invalid integration branch: {branch}")
 
         reference = f"refs/remotes/{remote}/{branch}"
 

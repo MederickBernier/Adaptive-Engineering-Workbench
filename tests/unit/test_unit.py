@@ -1,4 +1,3 @@
-
 """
 Unit tests for AEW configuration management.
 
@@ -87,9 +86,7 @@ def test_default_configuration(
     assert config.integration_branch == "master"
     assert config.branch_prefix == "mb/"
 
-    assert config.branch_pattern == (
-        "{prefix}{type}/{issue}-{slug}"
-    )
+    assert config.branch_pattern == ("{prefix}{type}/{issue}-{slug}")
 
 
 def test_default_publication_is_disabled(
@@ -124,13 +121,7 @@ def test_user_configuration_overrides_defaults(
 
     write_config(
         user_config,
-        {
-            "git": {
-                "branches": {
-                    "prefix": "dev/"
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": "dev/"}}},
     )
 
     config = load_test_config(
@@ -151,24 +142,12 @@ def test_project_configuration_overrides_user(
 
     write_config(
         user_config,
-        {
-            "git": {
-                "branches": {
-                    "prefix": "personal/"
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": "personal/"}}},
     )
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "prefix": "team/"
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": "team/"}}},
     )
 
     config = load_test_config(
@@ -188,13 +167,7 @@ def test_nested_configuration_merge(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "prefix": "mb/"
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": "mb/"}}},
     )
 
     config = load_test_config(
@@ -272,15 +245,7 @@ def test_custom_branch_pattern(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "naming_pattern": (
-                        "{prefix}{issue}-{slug}"
-                    )
-                }
-            }
-        },
+        {"git": {"branches": {"naming_pattern": ("{prefix}{issue}-{slug}")}}},
     )
 
     config = load_test_config(
@@ -288,11 +253,14 @@ def test_custom_branch_pattern(
         user_config,
     )
 
-    assert config.generate_branch_name(
-        task_type="bug",
-        issue="142",
-        title="Null Customer Response",
-    ) == "mb/142-null-customer-response"
+    assert (
+        config.generate_branch_name(
+            task_type="bug",
+            issue="142",
+            title="Null Customer Response",
+        )
+        == "mb/142-null-customer-response"
+    )
 
 
 def test_empty_branch_prefix(
@@ -304,13 +272,7 @@ def test_empty_branch_prefix(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "prefix": ""
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": ""}}},
     )
 
     config = load_test_config(
@@ -318,11 +280,14 @@ def test_empty_branch_prefix(
         user_config,
     )
 
-    assert config.generate_branch_name(
-        task_type="bug",
-        issue="142",
-        title="Null Customer Response",
-    ) == "fix/142-null-customer-response"
+    assert (
+        config.generate_branch_name(
+            task_type="bug",
+            issue="142",
+            title="Null Customer Response",
+        )
+        == "fix/142-null-customer-response"
+    )
 
 
 @pytest.mark.parametrize(
@@ -345,13 +310,7 @@ def test_invalid_branch_prefix(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "prefix": prefix
-                }
-            }
-        },
+        {"git": {"branches": {"prefix": prefix}}},
     )
 
     with pytest.raises(ConfigurationError):
@@ -370,15 +329,7 @@ def test_unknown_branch_token(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "naming_pattern": (
-                        "{prefix}{unknown}/{slug}"
-                    )
-                }
-            }
-        },
+        {"git": {"branches": {"naming_pattern": ("{prefix}{unknown}/{slug}")}}},
     )
 
     with pytest.raises(
@@ -400,15 +351,7 @@ def test_missing_slug_token(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "git": {
-                "branches": {
-                    "naming_pattern": (
-                        "{prefix}{type}/{issue}"
-                    )
-                }
-            }
-        },
+        {"git": {"branches": {"naming_pattern": ("{prefix}{type}/{issue}")}}},
     )
 
     with pytest.raises(
@@ -430,13 +373,7 @@ def test_invalid_boolean_configuration(
 
     write_config(
         repository / ".aew" / "config.json",
-        {
-            "delivery": {
-                "commits": {
-                    "execute": "false"
-                }
-            }
-        },
+        {"delivery": {"commits": {"execute": "false"}}},
     )
 
     with pytest.raises(
