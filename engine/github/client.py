@@ -41,6 +41,7 @@ import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import quote, unquote
 
 
 class GitHubError(RuntimeError):
@@ -67,7 +68,6 @@ _ALLOWED_COMMANDS = {
     ("issue", "view"),
     ("pr", "list"),
     ("pr", "view"),
-    ("api",),
 }
 
 
@@ -97,6 +97,7 @@ class GitHubPullRequest:
     head_commit: str
     draft: bool
     changed_files: tuple[str, ...]
+    closing_issue_urls: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -210,36 +211,25 @@ def _parse_issue(
 def _parse_pull_request(
     repository: str,
     data: dict[str, Any],
+    paths: tuple[str, ...],
 ) -> GitHubPullRequest:
     """Parse GitHub CLI pull request JSON."""
 
-    files = data.get("files")
+    owner = data.get("headRepositoryOwner")
+    head = data.get("headRepository")
+    head_repository = None
+    if data.get("isCrossRepository") is False:
+        head_repository = repository
+    elif isinstance(owner, dict) and isinstance(head, dict):
+        head_repository = (
+            f"{_require_string(owner, 'login')}/{_require_string(head, 'name')}"
+        )
 
-    if not isinstance(files, list):
-        raise GitHubDataError("Pull request files are unavailable")
-
-    paths: list[str] = []
-
-    for file in files:
-        if not isinstance(file, dict):
-            raise GitHubDataError("Invalid pull request file entry")
-
-        path = file.get("path")
-
-        if not isinstance(path, str) or not path:
-            raise GitHubDataError("Invalid pull request file path")
-
-        paths.append(path)
-
-    head_repository = data.get("headRepositoryOwner")
-
-    head_owner: str | None = None
-
-    if isinstance(head_repository, dict):
-        login = head_repository.get("login")
-
-        if isinstance(login, str):
-            head_owner = login
+    references = data.get("closingIssuesReferences")
+    if not isinstance(references, list) or any(
+        not isinstance(item, dict) for item in references
+    ):
+        raise GitHubDataError("Invalid closing issue references")
 
     head_branch = _require_string(
         data,
@@ -258,12 +248,11 @@ def _parse_pull_request(
             "baseRefName",
         ),
         head_branch=head_branch,
-        head_repository=(
-            f"{head_owner}/{head_branch}" if head_owner is not None else None
-        ),
+        head_repository=head_repository,
         head_commit=_require_commit(_require_string(data, "headRefOid")),
         draft=data["isDraft"],
-        changed_files=tuple(sorted(set(paths))),
+        changed_files=paths,
+        closing_issue_urls=tuple(_require_string(item, "url") for item in references),
     )
 
 
@@ -301,9 +290,7 @@ class GitHubClient:
 
         prefix = tuple(arguments[:2])
 
-        allowed = prefix in _ALLOWED_COMMANDS or (
-            arguments[0] == "api" and ("api",) in _ALLOWED_COMMANDS
-        )
+        allowed = prefix in _ALLOWED_COMMANDS or self._allowed_api(arguments)
 
         if not allowed:
             raise GitHubCommandError("GitHub operation is not allowlisted")
@@ -313,6 +300,7 @@ class GitHubClient:
         environment["GH_PROMPT_DISABLED"] = "1"
         environment["GIT_TERMINAL_PROMPT"] = "0"
         environment["GH_PAGER"] = "cat"
+        environment["GH_HOST"] = "github.com"
 
         try:
             result = subprocess.run(
@@ -350,6 +338,33 @@ class GitHubClient:
             json.JSONDecodeError,
         ) as error:
             raise GitHubDataError("GitHub returned invalid JSON") from error
+
+    def _allowed_api(self, arguments: Sequence[str]) -> bool:
+        if tuple(arguments[:3]) != ("api", "--method", "GET"):
+            return False
+        base = re.escape(f"repos/{self.repository}")
+        if len(arguments) == 4:
+            match = re.fullmatch(
+                rf"{base}/git/ref/heads/([A-Za-z0-9._~/%-]+)", arguments[3]
+            )
+            if match is None:
+                return False
+            branch = unquote(match[1])
+            return (
+                quote(branch, safe="/") == match[1]
+                and all(part not in ("", ".", "..") for part in branch.split("/"))
+                and ".." not in branch
+                and not any(character in branch for character in "\x00\r\n")
+            )
+        return (
+            len(arguments) == 6
+            and tuple(arguments[3:5]) == ("--paginate", "--slurp")
+            and bool(
+                re.fullmatch(
+                    rf"{base}/pulls/[1-9][0-9]*/files[?]per_page=100", arguments[5]
+                )
+            )
+        )
 
     def issue(self, number: int) -> GitHubIssue:
         """Retrieve one issue."""
@@ -443,9 +458,9 @@ class GitHubClient:
                 "--json",
                 (
                     "number,title,body,state,url,"
-                    "baseRefName,headRefName,"
-                    "headRefOid,headRepositoryOwner,"
-                    "isDraft,files"
+                    "baseRefName,baseRefOid,headRefName,"
+                    "headRefOid,headRepository,headRepositoryOwner,"
+                    "isCrossRepository,isDraft,changedFiles,closingIssuesReferences"
                 ),
             ]
         )
@@ -459,10 +474,72 @@ class GitHubClient:
         ):
             raise GitHubDataError("Expected boolean isDraft")
 
-        return _parse_pull_request(
-            self.repository,
-            data,
+        if _response_number(data) != number:
+            raise GitHubDataError("Unexpected pull request number")
+        count = data.get("changedFiles")
+        if type(count) is not int or not 0 <= count <= 3000:
+            raise GitHubDataError("Pull request file count cannot be verified")
+        fields = (
+            "number",
+            "state",
+            "baseRefName",
+            "baseRefOid",
+            "headRefOid",
+            "changedFiles",
         )
+        _require_commit(_require_string(data, "baseRefOid"))
+        paths = self._pull_request_paths(number, count)
+        current = self._run_json(
+            [
+                "pr",
+                "view",
+                str(number),
+                "--repo",
+                self.repository,
+                "--json",
+                ",".join(fields),
+            ]
+        )
+        if not isinstance(current, dict) or any(
+            current.get(field) != data.get(field) for field in fields
+        ):
+            raise GitHubDataError("Pull request changed during file enumeration")
+        return _parse_pull_request(self.repository, data, paths)
+
+    def _pull_request_paths(self, number: int, count: int) -> tuple[str, ...]:
+        pages = self._run_json(
+            [
+                "api",
+                "--method",
+                "GET",
+                "--paginate",
+                "--slurp",
+                f"repos/{self.repository}/pulls/{number}/files?per_page=100",
+            ]
+        )
+        if not isinstance(pages, list) or not pages:
+            raise GitHubDataError("Pull request file pages are unavailable")
+
+        filenames: set[str] = set()
+        previous_paths: set[str] = set()
+        for page in pages:
+            if not isinstance(page, list):
+                raise GitHubDataError("Invalid pull request file page")
+            for file in page:
+                if not isinstance(file, dict):
+                    raise GitHubDataError("Invalid pull request file entry")
+                path = _require_string(file, "filename")
+                if not path or path in filenames:
+                    raise GitHubDataError("Invalid or duplicate pull request file path")
+                filenames.add(path)
+                if file.get("status") == "renamed" or "previous_filename" in file:
+                    previous = _require_string(file, "previous_filename")
+                    if not previous:
+                        raise GitHubDataError("Empty pull request rename source")
+                    previous_paths.add(previous)
+        if len(filenames) != count:
+            raise GitHubDataError("Pull request file enumeration may be incomplete")
+        return tuple(sorted(filenames | previous_paths))
 
     def open_pull_requests(
         self,
@@ -473,7 +550,10 @@ class GitHubClient:
 
         numbers = self.open_pull_request_numbers(limit=limit)
 
-        return tuple(self.pull_request(number) for number in numbers)
+        pull_requests = tuple(self.pull_request(number) for number in numbers)
+        if any(pr.state.upper() != "OPEN" for pr in pull_requests):
+            raise GitHubDataError("Open pull request list changed during inspection")
+        return pull_requests
 
     def remote_branch_commit(
         self,
@@ -498,7 +578,7 @@ class GitHubClient:
 
         # GitHub's Git ref endpoint accepts a branch
         # name with slash-separated path components.
-        endpoint = f"repos/{owner}/{name}/git/ref/heads/{branch}"
+        endpoint = f"repos/{owner}/{name}/git/ref/heads/{quote(branch, safe='/')}"
 
         data = self._run_json(
             [

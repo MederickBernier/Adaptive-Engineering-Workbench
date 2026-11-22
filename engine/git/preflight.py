@@ -13,12 +13,11 @@ It does not:
 - Fetch remotes.
 - Create or switch branches.
 - Stage or commit changes.
-- Inspect GitHub pull requests.
 - Authorize implementation.
 
 Local inspection is the default. Optional remote baseline verification observes
 the configured integration ref and checks for its commit in the local object
-store. Full preflight also requires pull request coordination evidence.
+store. An optional GitHub client adds pull request coordination evidence.
 """
 
 from __future__ import annotations
@@ -37,6 +36,7 @@ from engine.git.repository import (
     GitRepository,
     WorkspaceState,
 )
+from engine.github.client import GitHubClient, GitHubError, GitHubPullRequest
 
 
 class PreflightStatus(str, Enum):
@@ -103,6 +103,7 @@ class LocalPreflightReport:
     remote_freshness_verified: bool = False
     pull_requests_checked: bool = False
     baseline: IntegrationBaseline | None = None
+    pull_requests: tuple[GitHubPullRequest, ...] = ()
 
 
 class ScopeKind(str, Enum):
@@ -348,9 +349,127 @@ class GitPreflight:
         self,
         repository: GitRepository,
         config: AEWConfig,
+        *,
+        github: GitHubClient | None = None,
     ) -> None:
         self._repository = repository
         self._config = config
+        self._github = github
+
+    def _inspect_pull_requests(
+        self,
+        remote: str,
+        issue: str,
+        proposed_branch: str | None,
+        intended_scope: Sequence[str],
+        findings: list[PreflightFinding],
+    ) -> tuple[GitHubPullRequest, ...] | None:
+        github = self._github
+        if github is None:
+            findings.append(
+                PreflightFinding(
+                    "PR_PREFLIGHT_NOT_PERFORMED",
+                    FindingSeverity.WARNING,
+                    "Active PRs and concurrent branch dependencies were not inspected.",
+                )
+            )
+            return None
+
+        try:
+            repository = self._repository.github_remote_repository(remote)
+            if (
+                repository is None
+                or repository.casefold() != github.repository.casefold()
+            ):
+                findings.append(
+                    PreflightFinding(
+                        "PR_REPOSITORY_UNVERIFIED",
+                        FindingSeverity.WARNING,
+                        "The configured remote does not match the GitHub client repository.",
+                        (remote, github.repository),
+                    )
+                )
+                return None
+            pull_requests = github.open_pull_requests()
+        except (GitError, GitHubError) as error:
+            findings.append(
+                PreflightFinding(
+                    "PR_COORDINATION_UNAVAILABLE",
+                    FindingSeverity.WARNING,
+                    "Complete pull request coordination evidence could not be retrieved.",
+                    (github.repository, type(error).__name__),
+                )
+            )
+            return None
+
+        same_repo_heads = {
+            pr.head_branch
+            for pr in pull_requests
+            if pr.head_repository
+            and pr.head_repository.casefold() == repository.casefold()
+        }
+        issue_url = f"https://github.com/{repository}/issues/{issue}".casefold()
+        for pr in pull_requests:
+            evidence = (pr.url, pr.head_commit)
+            assessment = assess_workspace(
+                tuple(
+                    GitFileStatus(path=path, index_status="M", worktree_status=" ")
+                    for path in pr.changed_files
+                ),
+                intended_scope,
+            )
+            if assessment.overlapping_paths:
+                findings.append(
+                    PreflightFinding(
+                        "PR_PATH_OVERLAP",
+                        FindingSeverity.WARNING,
+                        "An active pull request touches paths in the intended scope.",
+                        (*evidence, *assessment.overlapping_paths),
+                    )
+                )
+            if assessment.overlap == OverlapStatus.UNKNOWN:
+                findings.append(
+                    PreflightFinding(
+                        "PR_PATH_SCOPE_UNKNOWN",
+                        FindingSeverity.WARNING,
+                        "An active pull request's path overlap could not be classified.",
+                        evidence,
+                    )
+                )
+            if any(url.casefold() == issue_url for url in pr.closing_issue_urls):
+                findings.append(
+                    PreflightFinding(
+                        "PR_LINKED_ISSUE",
+                        FindingSeverity.WARNING,
+                        "An active pull request is linked to the requested issue.",
+                        evidence,
+                    )
+                )
+            if pr.base_branch in same_repo_heads or pr.base_branch == proposed_branch:
+                findings.append(
+                    PreflightFinding(
+                        "PR_POSSIBLE_BRANCH_DEPENDENCY",
+                        FindingSeverity.WARNING,
+                        "An active pull request targets a branch relevant to coordination.",
+                        (*evidence, pr.base_branch),
+                    )
+                )
+        if proposed_branch is not None and proposed_branch in same_repo_heads:
+            findings.append(
+                PreflightFinding(
+                    "PR_BRANCH_COLLISION",
+                    FindingSeverity.BLOCKING,
+                    "The proposed branch is the head of an active pull request in the integration repository.",
+                    tuple(
+                        pr.url
+                        for pr in pull_requests
+                        if pr.head_branch == proposed_branch
+                        and pr.head_repository
+                        and pr.head_repository.casefold() == repository.casefold()
+                    ),
+                )
+            )
+        return pull_requests
 
     def _inspect_baseline(
         self,
@@ -578,15 +697,20 @@ class GitPreflight:
                     ),
                 )
             )
-        findings.append(
-            PreflightFinding(
-                code="PR_PREFLIGHT_NOT_PERFORMED",
-                severity=FindingSeverity.WARNING,
-                message=(
-                    "Active PRs and concurrent branch dependencies were not inspected."
-                ),
-            )
+        pull_requests = self._inspect_pull_requests(
+            remote, issue, proposed_branch, intended_scope, findings
         )
+        if any(finding.code == "PR_BRANCH_COLLISION" for finding in findings):
+            branch_collision = True
+        elif pull_requests is not None and proposed_branch is not None:
+            findings.append(
+                PreflightFinding(
+                    "REMOTE_BRANCH_COLLISION_NOT_VERIFIED",
+                    FindingSeverity.WARNING,
+                    "The proposed branch has not been checked against live remote refs.",
+                    (remote, proposed_branch),
+                )
+            )
 
         blocked = any(
             finding.severity == FindingSeverity.BLOCKING for finding in findings
@@ -611,4 +735,6 @@ class GitPreflight:
                 and baseline.remote_commit == baseline.tracking_commit
             ),
             baseline=baseline,
+            pull_requests_checked=pull_requests is not None,
+            pull_requests=pull_requests or (),
         )

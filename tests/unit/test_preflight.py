@@ -16,9 +16,10 @@ Run:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 
@@ -36,6 +37,7 @@ from engine.git.repository import (
     RepositorySnapshot,
     WorkspaceState,
 )
+from engine.github.client import GitHubClient, GitHubDataError, GitHubPullRequest
 
 COMMIT = "a" * 40
 INTEGRATION_COMMIT = "b" * 40
@@ -80,6 +82,7 @@ class FakeGitRepository:
     remote_commit: str | None = INTEGRATION_COMMIT
     remote_error: bool = False
     object_available: bool = True
+    github_repository: str | None = "example/api"
 
     def snapshot(self) -> RepositorySnapshot:
         return RepositorySnapshot(
@@ -124,6 +127,10 @@ class FakeGitRepository:
         assert commit == self.remote_commit
         return self.object_available
 
+    def github_remote_repository(self, remote: str) -> str | None:
+        assert remote == "origin"
+        return self.github_repository
+
     def branch_exists(
         self,
         name: str,
@@ -139,12 +146,14 @@ def inspect(
     *,
     scope: list[str] | None = None,
     verify_remote: bool = False,
+    github: GitHubClient | None = None,
 ):
     """Run preflight with consistent test inputs."""
 
     preflight = GitPreflight(
         repository,  # type: ignore[arg-type]
         config(),
+        github=github,
     )
 
     return preflight.inspect(
@@ -177,6 +186,72 @@ def test_matching_remote_baseline_keeps_preflight_incomplete() -> None:
     assert report.remote_freshness_verified is True
     assert report.status == PreflightStatus.UNAVAILABLE
     assert "PR_PREFLIGHT_NOT_PERFORMED" in finding_codes(report)
+
+
+def test_pull_request_coordination_reports_overlap_issue_dependency_and_collision() -> (
+    None
+):
+    github = Mock(spec=GitHubClient, repository="example/api")
+    parent = GitHubPullRequest(
+        repository="example/api",
+        number=7,
+        title="Null response handling",
+        body="",
+        state="OPEN",
+        url="https://github.com/example/api/pull/7",
+        base_branch="master",
+        head_branch="mb/fix/142-null-customer-response",
+        head_repository="example/api",
+        head_commit=COMMIT,
+        draft=False,
+        changed_files=("src/customer/mapper.py",),
+        closing_issue_urls=("https://github.com/example/api/issues/142",),
+    )
+    child = replace(
+        parent,
+        number=8,
+        url="https://github.com/example/api/pull/8",
+        base_branch=parent.head_branch,
+        head_branch="follow-up",
+        changed_files=("README.md",),
+        closing_issue_urls=(),
+    )
+    github.open_pull_requests.return_value = (parent, child)
+
+    report = inspect(FakeGitRepository(), github=github, verify_remote=True)
+
+    assert report.pull_requests == (parent, child)
+    assert report.pull_requests_checked
+    assert report.branch_collision is True
+    assert report.status == PreflightStatus.BLOCKED
+    assert {
+        "PR_PATH_OVERLAP",
+        "PR_LINKED_ISSUE",
+        "PR_POSSIBLE_BRANCH_DEPENDENCY",
+        "PR_BRANCH_COLLISION",
+    } <= finding_codes(report)
+
+
+def test_pull_request_coordination_requires_matching_identity() -> None:
+    github = Mock(spec=GitHubClient, repository="other/api")
+
+    report = inspect(FakeGitRepository(), github=github)
+
+    assert not report.pull_requests_checked
+    assert "PR_REPOSITORY_UNVERIFIED" in finding_codes(report)
+    github.open_pull_requests.assert_not_called()
+
+
+def test_incomplete_pull_request_evidence_does_not_clear_preflight() -> None:
+    github = Mock(spec=GitHubClient, repository="example/api")
+    github.open_pull_requests.side_effect = GitHubDataError("file count mismatch")
+
+    report = inspect(FakeGitRepository(), github=github, verify_remote=True)
+
+    assert report.remote_freshness_verified
+    assert not report.pull_requests_checked
+    assert report.status == PreflightStatus.UNAVAILABLE
+    assert "PR_COORDINATION_UNAVAILABLE" in finding_codes(report)
 
 
 def test_remote_baseline_reports_mismatches_and_missing_object() -> None:

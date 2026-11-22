@@ -390,6 +390,8 @@ On macOS or Linux, use `.venv/bin/python` for commands after creating the virtua
 
 GitHub Actions runs these checks on Linux and Windows for pushes to `master` and pull requests targeting it.
 
+To include pull request evidence in Python preflight, construct `GitPreflight` with `github=GitHubClient("owner/repository")` for the selected github.com Git remote. Use an authenticated GitHub CLI that supports `gh api --paginate --slurp` and `gh pr view --json closingIssuesReferences`. Incomplete enumeration leaves pull request coordination unverified.
+
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 
 ## Project Direction

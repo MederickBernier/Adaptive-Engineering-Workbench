@@ -315,6 +315,22 @@ def test_local_branch_collision(
     assert adapter.branch_exists("mb/fix/999-other") is False
 
 
+@pytest.mark.parametrize(
+    ("url", "identity"),
+    [
+        ("https://github.com/example/api.git", "example/api"),
+        ("git@github.com:example/api.git", "example/api"),
+        ("ssh://git@github.com/example/api", "example/api"),
+        ("https://github.com.example.org/example/api.git", None),
+    ],
+)
+def test_github_remote_identity(
+    repository: Path, url: str, identity: str | None
+) -> None:
+    git(repository, "remote", "add", "origin", url)
+    assert GitRepository(repository).github_remote_repository("origin") == identity
+
+
 def test_remote_tracking_branch(
     repository: Path,
     tmp_path: Path,

@@ -476,6 +476,19 @@ class GitRepository:
             raise GitCommandError("Unable to resolve local integration branch")
         return commit
 
+    def github_remote_repository(self, remote: str) -> str | None:
+        """Identify a configured github.com remote without contacting it."""
+        result = self._run(["remote", "get-url", "--", remote], check=False)
+        if result.returncode != 0:
+            return None
+        match = re.fullmatch(
+            r"(?:https://github\.com/|ssh://git@github\.com/|git@github\.com:)"
+            r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?/?",
+            result.stdout.strip(),
+            flags=re.IGNORECASE,
+        )
+        return match[1] if match else None
+
     def remote_branch_commit(
         self, branch: str, *, remote: str = "origin"
     ) -> str | None:
