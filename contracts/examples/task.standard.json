@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1",
+  "task": {
+    "id": "github:example/api#143",
+    "source": "github",
+    "repository": "example/api",
+    "issue_number": 143,
+    "title": "Paginate customer search results",
+    "objective": "Add optional pagination to customer search.",
+    "acceptance_criteria": [
+      "Clients can request a bounded page of customer results.",
+      "Requests without pagination retain their existing behavior."
+    ]
+  },
+  "assessment": {
+    "profile": "standard",
+    "rationale": "The change spans the query and API layers and requires compatibility checks.",
+    "risk": "moderate",
+    "uncertainty": "low"
+  },
+  "plan": {
+    "revision": 1,
+    "approach": "Add bounded queries first, then expose pagination through optional request parameters.",
+    "scope": ["src/customer/**", "tests/customer/**"],
+    "work_units": [
+      {
+        "id": "143-01",
+        "objective": "Add deterministic paging to customer queries.",
+        "scope": ["src/customer/CustomerRepository.java", "tests/customer/CustomerRepositoryTest.java"],
+        "acceptance": ["Consecutive pages return ordered results without duplicates."]
+      },
+      {
+        "id": "143-02",
+        "objective": "Expose and validate optional pagination parameters.",
+        "scope": ["src/customer/CustomerController.java", "tests/customer/CustomerControllerTest.java"],
+        "acceptance": ["Requests without pagination keep their existing response behavior."],
+        "dependencies": ["143-01"]
+      }
+    ],
+    "verification": [
+      "Run customer query and controller tests.",
+      "Verify existing search clients can omit pagination parameters."
+    ]
+  },
+  "approval": {
+    "status": "pending",
+    "required_actions": ["create_branch", "implement", "run_tests"]
+  }
+}
