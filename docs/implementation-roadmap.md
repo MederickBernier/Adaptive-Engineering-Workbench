@@ -303,7 +303,8 @@ M0 does not implement:
 # 6. M1 — Read-Only Repository Preflight
 
 **Priority:** Critical  
-**Status:** Planned  
+**Status:** Partially verified
+
 **Depends on:** M0  
 **Primary ADRs:** ADR-004, ADR-005
 
@@ -433,6 +434,24 @@ M1 does not:
 - Publish pull requests.
 
 If remote synchronization is required, it must be handled by a separately authorized workflow in a later milestone.
+
+### 6.8 Verification record
+
+Work Units delivered for the M1 baseline:
+
+| Commit | Verified behavior |
+|---|---|
+| `c9f22c6` | Preserve raw Git status paths and reject incomplete status records. |
+| `b21b9c9` | Reconcile the observed integration HEAD with local refs and object availability. |
+| `144444d` | Coordinate active PRs with verified file counts and report path overlap, linked issues, and possible branch dependencies. Verified using mocked CLI responses. |
+| `9931557` | Detect proposed-branch collisions using live remote refs. |
+| `d00641f` | Distinguish known blockers, missing evidence, advisory warnings, and successful preflight. |
+
+On 2026-11-23, a read-only smoke check on the real repository reconciled local and remote `master` at `d00641f`. The proposed branch lookup confirmed an absent test name and detected the occupied `master` ref. Before-and-after comparisons found identical HEAD, refs, and workspace status. The check without a GitHub client returned `UNAVAILABLE`, and the occupied branch produced `BLOCKED`.
+
+`python -m pytest -q` reported 150 passed and 3 skipped on the assessment commit. Ruff lint and format checks passed. The [hosted Actions run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45158314459) completed successfully on Linux and Windows.
+
+The remaining M1 verification is an authenticated end-to-end run of the GitHub CLI adapter against a repository with a known open PR and changed files. A read-only REST check found no open PRs in the project repository during closeout. The workstation had no GitHub CLI on PATH or GitHub token in its environment. M2 awaits a new assignment.
 
 ---
 
