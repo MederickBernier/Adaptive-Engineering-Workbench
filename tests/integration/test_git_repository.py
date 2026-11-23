@@ -17,6 +17,7 @@ The adapter must not modify Git or workspace state.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import replace
@@ -47,6 +48,7 @@ from engine.execution.envelope import (
     ExecutionPolicy,
     observe_workspace,
 )
+from engine.execution.isolated import DockerSandbox, IsolatedChecks
 from engine.git.preflight import GitPreflight
 from engine.git.repository import (
     GitCommandError,
@@ -494,7 +496,8 @@ def test_guarded_read_rejects_mismatched_file_version(
         controller.resume(envelope, context, signed)
 
 
-def test_scoped_change_review_preserves_shared_checkout(guarded_execution):
+@pytest.fixture
+def implementation_execution(guarded_execution):
     adapter, context, history, draft, signed, envelope, policy = guarded_execution
     review_plan = build_plan(
         draft.task,
@@ -526,6 +529,11 @@ def test_scoped_change_review_preserves_shared_checkout(guarded_execution):
         grant_id=signed.grant.grant_id,
         operations=("implement", "run_tests"),
     )
+    return adapter, context, signed, envelope, policy
+
+
+def test_scoped_change_review_preserves_shared_checkout(implementation_execution):
+    adapter, context, signed, envelope, policy = implementation_execution
     path = "src/public.py"
     oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
     before = adapter.snapshot()
@@ -550,6 +558,75 @@ def test_scoped_change_review_preserves_shared_checkout(guarded_execution):
             signed,
             (TextReplacement(path, "f" * 40, "different"),),
         )
+
+
+@pytest.mark.skipif(
+    not os.environ.get("AEW_TEST_DOCKER_IMAGE"),
+    reason="requires a pinned local Docker image",
+)
+def test_isolated_check_materializes_review_without_host_access(
+    implementation_execution, tmp_path
+):
+    adapter, context, signed, envelope, policy = implementation_execution
+    executable = shutil.which("docker")
+    assert executable is not None
+    sandbox = DockerSandbox(Path(executable), os.environ["AEW_TEST_DOCKER_IMAGE"])
+    check = "Compare source to recorded object"
+    check_script = (
+        "import os, socket; from pathlib import Path; "
+        "assert Path('src/public.py').read_bytes() == b'# reviewed\\n'; "
+        "assert Path('src/new.py').read_bytes() == b'# new\\n'; "
+        "assert not Path('src/private.py').exists(); assert not Path('.git').exists(); "
+        "assert not Path('/var/run/docker.sock').exists(); "
+        "assert {name for _, name in socket.if_nameindex()} == {'lo'}; "
+        "assert os.getuid() == 65534; assert os.statvfs('/').f_flag & os.ST_RDONLY"
+    )
+    argv = ("/usr/local/bin/python", "-I", "-c", check_script)
+    controller = IsolatedChecks(
+        adapter,
+        policy,
+        CheckpointStore(tmp_path / "isolated.sqlite3"),
+        sandbox,
+        {check: argv, "unrecorded": argv},
+    )
+    path = "src/public.py"
+    oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
+    edits = (
+        TextReplacement(path, oid, "# reviewed\n"),
+        TextReplacement("src/new.py", None, "# new\n"),
+    )
+    before = adapter.snapshot()
+    with pytest.raises(ExecutionDenied, match="outside the recorded"):
+        controller.run(envelope, context, signed, replacements=edits, name="unrecorded")
+    result = controller.run(envelope, context, signed, replacements=edits, name=check)
+    assert result.passed
+    assert "+# reviewed" in result.review.diff
+    assert adapter.snapshot() == before
+    assert (adapter.root / path).read_bytes() == b"# example\n"
+    assert not (adapter.root / "src/new.py").exists()
+
+
+@pytest.mark.skipif(
+    not os.environ.get("AEW_TEST_DOCKER_IMAGE"),
+    reason="requires a pinned local Docker image",
+)
+def test_isolated_check_removes_timed_out_container():
+    executable = shutil.which("docker")
+    assert executable is not None
+    sandbox = DockerSandbox(Path(executable), os.environ["AEW_TEST_DOCKER_IMAGE"])
+    payload = json.dumps(
+        {
+            "files": {},
+            "argv": [
+                "/usr/local/bin/python",
+                "-I",
+                "-c",
+                "import time; time.sleep(20)",
+            ],
+        }
+    ).encode()
+    with pytest.raises(ExecutionDenied, match="exceeded its deadline"):
+        sandbox.run(payload, timeout=2)
 
 
 def test_repository_discovery(

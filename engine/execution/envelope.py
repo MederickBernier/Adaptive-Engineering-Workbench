@@ -6,6 +6,7 @@ from hashlib import sha256
 
 from engine.context.package import ContextPackage
 from engine.execution.authority import (
+    ApprovalGrant,
     ExecutionDenied,
     GrantVerifier,
     SignedGrant,
@@ -115,6 +116,13 @@ class ExecutionPolicy:
             parse_scope(path.casefold()) for path in (".git/**", *protected_paths)
         )
 
+    def path_is_protected(self, path: str, grant: ApprovalGrant) -> bool:
+        rules = (
+            *self._protected,
+            *(parse_scope(item.casefold()) for item in grant.protected_paths),
+        )
+        return any(rule.matches(path.casefold()) for rule in rules)
+
     def authorize(
         self,
         envelope: ExecutionEnvelope,
@@ -216,11 +224,7 @@ class ExecutionPolicy:
         candidate = parse_scope(path)
         if candidate.kind != ScopeKind.FILE:
             raise ExecutionDenied("Investigation requires one exact file path")
-        protected = (
-            *self._protected,
-            *(parse_scope(path.casefold()) for path in grant.protected_paths),
-        )
-        if any(rule.matches(candidate.path.casefold()) for rule in protected):
+        if self.path_is_protected(candidate.path, grant):
             raise ExecutionDenied("The path is protected")
         scopes = tuple(
             tuple(parse_scope(item) for item in scope)

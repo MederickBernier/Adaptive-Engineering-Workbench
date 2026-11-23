@@ -544,7 +544,7 @@ class GitRepository:
         return result.returncode == 0 and result.stdout.strip() == commit
 
     def committed_files(
-        self, commit: str, region: str = "."
+        self, commit: str, region: str = ".", *, regular_only: bool = False
     ) -> tuple[GitTreeFile, ...]:
         """List regular files in a commit, optionally under a literal region."""
         if not self.has_commit(commit):
@@ -573,6 +573,8 @@ class GitRepository:
             mode, kind, oid = fields
             if kind == "blob" and mode in ("100644", "100755"):
                 files.append(GitTreeFile(path, oid))
+            elif regular_only:
+                raise GitError("The execution checkout requires regular tracked files")
         return tuple(files)
 
     def read_blob(self, oid: str, *, max_bytes: int) -> str | None:

@@ -166,6 +166,14 @@ class CheckpointStore:
         if expired and success:
             raise ExecutionDenied("Execution deadline elapsed before completion")
 
+    def remaining_seconds(self, envelope: ExecutionEnvelope) -> float:
+        with self._write() as db:
+            row = self._get(db, envelope)
+            now = datetime.now(UTC).timestamp()
+            if row is None or self._exhausted(envelope, row, now, before_call=False):
+                raise ExecutionDenied("Execution deadline is unavailable or exhausted")
+            return envelope.budget.max_duration_seconds - (now - row["started"])
+
     def resume(self, envelope: ExecutionEnvelope, expected: Checkpoint) -> None:
         """Record a separately revalidated resume without replaying the pending read."""
         now = datetime.now(UTC).timestamp()
