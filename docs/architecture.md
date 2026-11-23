@@ -279,14 +279,7 @@ Branch creation occurs only after its separate authorization and verified integr
 
 **Defer:** embeddings, distributed brain, full vault sync, multi-agent orchestration, automated merge/deploy, cross-repository graph federation, patch queues, real-time collaborative editing, autonomous knowledge promotion.
 
-| Milestone | Deliverable | Exit gate |
-|---|---|---|
-| M0 | Contracts, configuration, task identity, adapters, schema | Persist and inspect a task safely |
-| M1 | Project discovery, snapshots, provenance, retrieval | Explain relevant code with verifiable references |
-| M2 | GitHub intake, preflight, context, planning | Grounded plan without modifying repository |
-| M3 | Scoped execution, write protection, verification, checkpoints | Complete one authorized Work Unit safely |
-| M4 | Commit proposals, sequential checkpoints, PR draft, recovery | Issue-to-PR-draft flow without unauthorized publication |
-| M5 | Real-repository pilot, failure injection, simplification | Demonstrated reliability and measured usefulness |
+The [implementation roadmap](implementation-roadmap.md) defines the active M0–M8 sequence and records evidence at each exit gate. It supersedes the initial M0–M5 scheduling table in this specification.
 
 ## 16. MVP acceptance tests
 
@@ -316,7 +309,7 @@ Branch creation occurs only after its separate authorization and verified integr
 
 ## 18. Contract artifacts and implementation status
 
-The first skill and the following **draft contract schemas** have been authored for v0.1.0. Their structural and semantic conformance still needs automated validation and engine implementation:
+Version 0.1 includes the task skill and the contracts below. The baseline suite covers structural schema validation and selected cross-contract invariants. The roadmap records the verified engine behavior and outstanding checks.
 
 | Artifact | Responsibility |
 |---|---|
@@ -329,7 +322,7 @@ The first skill and the following **draft contract schemas** have been authored 
 
 JSON Schema validates structure; cross-contract references, authenticity of approvals, source consistency, and protected operations require semantic checks in the engine. In particular, no model-authored document can authorize itself.
 
-**Not yet implemented:** executable engine, persistent Project Brain, guarded execution, GitHub integration, schema fixtures/tests, or a completed pilot. The approved contracts are design requirements, not evidence of working enforcement.
+The local Python prototype implements revision-scoped Project Brain storage, task intake and planning, Git preflight, guarded isolated execution, and delivery preparation. GitHub coordination is covered by mocked adapter tests. Authenticated live GitHub CLI verification remains open. Shared-checkout promotion and publication require separate authorization.
 
 ## 19. Documentation maintenance and change control
 

@@ -1134,7 +1134,8 @@ The isolated implementation scenario used mocked remote observations and real Gi
 # 13. M8 — Hardening and Pilot Adoption
 
 **Priority:** Medium  
-**Status:** Planned  
+**Status:** Verified for the local pilot
+
 **Depends on:** M7
 
 ### 13.1 Objective
@@ -1196,6 +1197,28 @@ M8 is verified when:
 - Project knowledge improves subsequent work.
 - Documentation reflects operational behavior.
 - The system demonstrates practical engineering value.
+
+### 13.6 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Snapshot integrity | `7ea31f3` | Rejected changed snapshot metadata or membership and missing, modified, or incompatible assertion records. |
+| Discovery reuse | `9772736` | Reopened an exact-coverage discovery snapshot without another tree scan. A different commit or scope triggered discovery. |
+| Repeatable pilot | `ecd9df9` | Measured local intake, storage, and retrieval on four disposable project types and the real AEW checkout. |
+
+Run `python -m scripts.pilot_m8 --repository <attached-checkout>` to reproduce the pilot. It reports milliseconds per measured operation. One Windows run observed:
+
+| Checkout | Cold discovery | Warm discovery | Retrieval | Explore intake |
+|---|---:|---:|---:|---:|
+| Python service fixture | 200.8 | 62.4 | 1.0 | 454.8 |
+| Java application fixture | 102.8 | 55.0 | 1.1 | 419.2 |
+| Go service fixture | 133.5 | 53.3 | 0.7 | 375.5 |
+| Mixed Python/TypeScript fixture | 213.6 | 58.7 | 0.9 | 395.0 |
+| Real AEW checkout at `d2737bb` | 181.8 | 71.1 | 2.7 | 436.8 |
+
+Local preflight took 256.8–324.8 ms. Discovery after a new fixture revision took 96.3–215.6 ms. Each checkout reused its exact snapshot and generated one investigation approval request. Intake preserved Git and workspace state. The AEW checkout yielded 24 available assertions. These are single-machine observations. They do not measure human intervention frequency or speed relative to a manual workflow.
+
+The full suite with Docker enabled reported **220 passed, 3 skipped**. Ruff lint and formatting passed. The tests cover dirty worktrees, conflicting and incomplete PR evidence, stale context, revoked grants, invalid envelopes, interrupted execution, concurrent workspace changes, unavailable providers, and inconsistent SQLite state. Hosted CI awaits publication. External adoption and authenticated live GitHub CLI verification remain open.
 
 ---
 

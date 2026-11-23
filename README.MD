@@ -296,13 +296,7 @@ Performance improvements must be demonstrated through representative tasks rathe
 
 ## Current Development Status
 
-The architecture baseline has been approved.
-
-The initial `aew-task` skill and five JSON Schema contracts have been designed.
-
-The core engine, persistent Project Brain, controlled execution system, and end-to-end integration have not yet been implemented.
-
-The implementation language, initial AI adapter, and final physical database schema remain open decisions.
+The v0.1 prototype includes JSON task intake, revision-scoped Project Brain knowledge, Context Packages, advisory planning, guarded isolated execution, and delivery drafts. The M8 local pilot exercised four representative fixture types and the AEW checkout. The Python implementation remains provisional. Hosted verification for M8 and authenticated live GitHub CLI verification are tracked in the roadmap.
 
 ## Architecture Decisions
 
@@ -477,6 +471,12 @@ Example `task.json` for Quick planning:
 ```
 
 The JSON response contains the sealed Context Package and recorded plan revision. Preserve both for the trusted host. Remote verification is opt-in through `--verify-remote` and `--github-repository owner/repository`. An unresolved preflight can produce an advisory implementation plan. Isolated execution requires complete preflight coverage and a scoped grant. The trusted host exposes the guarded operations through `TaskHost`.
+
+---
+
+## Local pilot
+
+From the source checkout, run `python -m scripts.pilot_m8` to measure intake and Project Brain reuse on disposable Python, Java, Go, and mixed Python/TypeScript repositories. Add `--repository <attached-checkout>` to include a real repository read-only. The script uses temporary databases and prints timings and observations as JSON. See the [M8 verification record](docs/implementation-roadmap.md#136-verification-record) for measured results and limits.
 
 ---
 
