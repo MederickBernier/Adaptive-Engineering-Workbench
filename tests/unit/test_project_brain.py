@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from engine.brain.model import Assertion, Depth, Evidence, KnowledgeKind, Revision
-from engine.brain.store import ProjectBrain
+from engine.brain.store import ProjectBrain, SnapshotIntegrityError
 
 REVISION = Revision("example/project", "a" * 40, "master")
 
@@ -63,3 +63,23 @@ def test_failed_membership_write_rolls_back_snapshot(tmp_path: Path) -> None:
     with closing(sqlite3.connect(path)) as db:
         assert db.execute("SELECT count(*) FROM snapshots").fetchone() == (0,)
         assert db.execute("SELECT count(*) FROM assertions").fetchone() == (0,)
+
+
+@pytest.mark.parametrize(
+    ("statement", "message"),
+    [
+        ("UPDATE snapshots SET regions = '[]'", "metadata or membership"),
+        ("DELETE FROM membership", "metadata or membership"),
+        ("DELETE FROM assertions", "assertion does not match"),
+        ("UPDATE assertions SET payload = '{}'", "assertion does not match"),
+        ("UPDATE assertions SET kind = 'durable'", "incompatible"),
+    ],
+)
+def test_corrupted_project_brain_snapshot_fails_closed(tmp_path, statement, message):
+    path = tmp_path / "brain.sqlite3"
+    brain = ProjectBrain(path, REVISION.repository)
+    snapshot = brain.publish(REVISION, (".",), (claim(),))
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute(statement)
+    with pytest.raises(SnapshotIntegrityError, match=message):
+        brain.load(snapshot.id)

@@ -42,6 +42,10 @@ _PLAN_SCHEMA = (
 )
 
 
+class SnapshotIntegrityError(ValueError):
+    """A stored snapshot or assertion no longer matches its published identity."""
+
+
 def _json(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -157,6 +161,7 @@ class ProjectBrain:
     def load(self, snapshot_id: str) -> Snapshot:
         """Reconstruct a published snapshot without consulting the worktree."""
         with closing(self._connect()) as db:
+            db.execute("BEGIN")
             self._check_identity(db)
             row = db.execute(
                 "SELECT revision, regions, observed_at FROM snapshots WHERE id = ?",
@@ -165,16 +170,51 @@ class ProjectBrain:
             if row is None:
                 raise KeyError(snapshot_id)
             revision, regions, observed_at = row
-            assertions = db.execute(
-                "SELECT a.payload FROM membership AS m JOIN assertions AS a ON a.id = m.assertion_id "
-                "WHERE m.snapshot_id = ? ORDER BY a.id",
+            members = db.execute(
+                "SELECT m.assertion_id, a.payload, a.kind FROM membership AS m "
+                "LEFT JOIN assertions AS a ON a.id = m.assertion_id "
+                "WHERE m.snapshot_id = ? ORDER BY m.assertion_id",
                 (snapshot_id,),
-            )
+            ).fetchall()
+            if (
+                _identity(_json((revision, regions, [key for key, _, _ in members])))
+                != snapshot_id
+            ):
+                raise SnapshotIntegrityError(
+                    "Snapshot metadata or membership does not match its ID"
+                )
+            try:
+                bound_revision = Revision(**json.loads(revision))
+                coverage = tuple(json.loads(regions))
+                assertions = []
+                for key, payload, kind in members:
+                    if payload is None or _identity(payload) != key:
+                        raise SnapshotIntegrityError(
+                            "Stored assertion does not match its ID"
+                        )
+                    assertion = _decode_assertion(payload)
+                    if (
+                        assertion.kind.value != kind
+                        or assertion.revision != bound_revision
+                        or assertion.region not in coverage
+                    ):
+                        raise SnapshotIntegrityError(
+                            "Stored assertion is incompatible with snapshot metadata"
+                        )
+                    assertions.append(assertion)
+            except (TypeError, KeyError, json.JSONDecodeError) as error:
+                raise SnapshotIntegrityError(
+                    "Snapshot metadata cannot be decoded"
+                ) from error
+            if bound_revision.repository != self.repository:
+                raise SnapshotIntegrityError(
+                    "Snapshot belongs to a different repository"
+                )
             return Snapshot(
                 snapshot_id,
-                Revision(**json.loads(revision)),
-                tuple(json.loads(regions)),
-                tuple(_decode_assertion(payload) for (payload,) in assertions),
+                bound_revision,
+                coverage,
+                tuple(assertions),
                 observed_at,
             )
 
