@@ -398,6 +398,34 @@ Preflight reports `BLOCKED` for known blockers and `UNAVAILABLE` when required e
 
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 
+## Project Brain
+
+Use one SQLite file per local checkout. Keep it outside the tracked repository, and bind it to the checkout's resolved root URI.
+
+```python
+from pathlib import Path
+
+from engine.brain.discovery import discover
+from engine.brain.retrieval import retrieve
+from engine.brain.store import ProjectBrain
+from engine.git.repository import GitRepository
+
+repository = GitRepository(Path.cwd())
+brain = ProjectBrain(Path.home() / "aew-project-brain.sqlite3", repository.root.as_uri())
+snapshot = discover(repository, brain, regions=("engine", "tests"))
+
+# After opening the same database in a later session
+snapshot_ids = brain.snapshot_ids(snapshot.revision.commit)
+historical = brain.load(snapshot_ids[0])
+view = retrieve(repository, brain, historical.id, target_commit=repository.head_commit())
+```
+
+Discovery reads a committed Git tree. Omit `regions` for broad discovery, or pass literal repository-relative paths for targeted discovery. Use a full commit ID to inspect a historical revision. The built-in detectors record D0 existence and D1 structure from recognized files. Investigators can publish evidence-backed D2 and D3 assertions through `ProjectBrain.publish()`. Verification status and investigation depth are preserved when a claim becomes stale.
+
+Retrieval separates current and stale claims. A changed region or an explicit `depends_on` assertion can invalidate previously applicable knowledge. Published snapshots remain available for historical retrieval, and a missing claim means the available snapshot has no evidence for it.
+
+---
+
 ## Project Direction
 
 AEW aims to make AI-assisted engineering more reliable, context-aware, and practical without removing developers from architectural and delivery decisions.

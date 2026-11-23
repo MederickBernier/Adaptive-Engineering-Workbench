@@ -458,7 +458,8 @@ The remaining M1 verification is an authenticated end-to-end run of the GitHub C
 # 7. M2 — Project Brain Foundation
 
 **Priority:** High  
-**Status:** Planned  
+**Status:** Verified
+
 **Depends on:** M0 and stable M1 repository identity interfaces  
 **Primary ADRs:** ADR-003, ADR-006, ADR-007, ADR-008
 
@@ -576,6 +577,20 @@ M2 does not require:
 - Automated architecture reconstruction for every language.
 - A complete semantic code index.
 - Distributed synchronization.
+
+### 7.11 Verification record
+
+The MVP uses one SQLite database per checkout with distinct durable and derived assertion kinds. The engineer confirmed this physical layout for the MVP. The broader acceptance histories of ADR-001 and ADR-002 remain open.
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Snapshot storage | `2ac8c74` | Reopened historical snapshots with explicit membership and provenance, rejected mixed revisions and repository identities, and rolled back a failed publication. |
+| Project discovery | `2784b43` | Identified language, framework, package manager, test, CI, and formatting signals from committed files. Targeted discovery excluded an unrelated region, and uncommitted edits did not change the profile. |
+| Retrieval and invalidation | `f92d290` | Reopened a snapshot by commit, detected both paths of a rename, marked dependent claims stale, retained unrelated knowledge and its depth, and recovered the original snapshot unchanged. |
+
+The Windows Python 3.13 suite reported **155 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check published 19 observations at `f92d290`, reopened their SQLite database, retrieved five observations scoped to `engine`, and observed unchanged Git and workspace state. Hosted CI for the M2 commits awaits publication.
+
+Discovery covers committed Git content and recognized file types and manifests. Behavioral and semantic assertions require supplied investigation evidence. Retrieval uses retained snapshots, committed path changes, and explicit dependencies. The Project Brain does not ingest the shared Markdown vault during M2. M1's authenticated live GitHub CLI verification remains open.
 
 ---
 
