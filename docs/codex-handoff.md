@@ -154,7 +154,7 @@ AEW repository/
 ├── aew/
 │   └── skills/
 │       └── aew-task/
-│           └── SKILL.MD
+│           └── SKILL.md
 ├── contracts/
 │   ├── task.schema.json
 │   ├── context.schema.json

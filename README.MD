@@ -444,6 +444,42 @@ To run the opt-in Docker integration tests, set `AEW_TEST_DOCKER_IMAGE` to the I
 
 ---
 
+## Task workflow
+
+From an attached checkout, send task intake JSON to the installed `aew-task` command or to `python -m engine.workflow.cli`. Keep the SQLite database outside the checkout.
+
+```powershell
+Get-Content task.json -Raw | aew-task --brain "$env:LOCALAPPDATA\aew-project.sqlite3"
+```
+
+Example `task.json` for Quick planning:
+
+```json
+{
+  "task": {
+    "id": "example-fix",
+    "objective": "Clarify the CLI help text",
+    "acceptance": ["Help describes the required database path"]
+  },
+  "assessment": {
+    "risk": "low",
+    "uncertainty": "low",
+    "rationale": "The edit is limited to a help message.",
+    "localized": true,
+    "acceptance_clear": true
+  },
+  "approach": "Update the help message and check the command output.",
+  "task_type": "fix",
+  "region": "engine/workflow",
+  "scope": ["engine/workflow/cli.py"],
+  "verification": ["Inspect the CLI help output"]
+}
+```
+
+The JSON response contains the sealed Context Package and recorded plan revision. Preserve both for the trusted host. Remote verification is opt-in through `--verify-remote` and `--github-repository owner/repository`. An unresolved preflight can produce an advisory implementation plan. Isolated execution requires complete preflight coverage and a scoped grant. The trusted host exposes the guarded operations through `TaskHost`.
+
+---
+
 ## Project Direction
 
 AEW aims to make AI-assisted engineering more reliable, context-aware, and practical without removing developers from architectural and delivery decisions.

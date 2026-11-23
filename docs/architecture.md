@@ -320,7 +320,7 @@ The first skill and the following **draft contract schemas** have been authored 
 
 | Artifact | Responsibility |
 |---|---|
-| `skills/aew-task/SKILL.md` | Read-only task analysis and proportional planning |
+| `aew/skills/aew-task/SKILL.md` | Read-only task analysis and proportional planning |
 | `contracts/task.schema.json` | Task identity, assessment, Work Units, planning |
 | `contracts/context.schema.json` | Revision-scoped knowledge, evidence, freshness |
 | `contracts/approval.schema.json` | Approval grant structure; not itself an authority token |

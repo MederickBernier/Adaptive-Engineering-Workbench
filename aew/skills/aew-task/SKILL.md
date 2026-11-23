@@ -1,4 +1,3 @@
-
 ---
 name: aew-task
 description: >
@@ -27,6 +26,31 @@ Accept either:
 
 Use the current repository unless another repository is
 explicitly selected.
+
+## Engine handoff
+
+Use `aew-task --repository <checkout> --brain <database>` with a JSON request on
+standard input. The equivalent module command is `python -m engine.workflow.cli`.
+Use a Project Brain database outside the checkout. Add `--verify-remote` and
+`--github-repository owner/repository` only when remote inspection is in scope.
+
+Send the task identity and objective, the assessed risk and uncertainty with
+their rationale, the approach, a literal discovery region, and the intended
+paths. Supply explicit Work Units and dependencies for Standard or Deep.
+For Explore, include the investigation questions, stopping checks, and budget.
+For a revision, supply `expected_revision` from the previous engine result.
+
+Retain the returned `context` and `plan` together, including the package ID and
+plan revision. Present `preflight_unresolved` as missing mandatory evidence.
+Present `awaiting_approval` as a request for review. Neither state grants tool access.
+
+When a trusted host is available, hand off the exact recorded plan, Context
+Package, and scoped signed grant to its mediated operations. Use committed
+reads for Explore. Implementation checks run against disposable isolated edits
+through the host's allowlist. After interruption, ask the host to revalidate the
+checkpoint before making a new attempt. Present the resulting evidence and
+delivery draft for review. Keep staging, commits, pushes, and PR publication
+behind their separate authorization boundaries.
 
 ## Procedure
 

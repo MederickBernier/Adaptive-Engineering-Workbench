@@ -194,7 +194,7 @@ The following files have been drafted during architectural development:
 
 - `README.md`
 - `docs/architecture.md`
-- `aew/skills/aew-task/SKILL.MD`
+- `aew/skills/aew-task/SKILL.md`
 
 **Contracts**
 
@@ -1039,7 +1039,8 @@ The local suite with Docker enabled reported **209 passed, 3 skipped**. Ruff lin
 # 12. M7 — Integrated Skill-Driven Workflow
 
 **Priority:** High  
-**Status:** Planned  
+**Status:** Verified for the local workflow
+
 **Depends on:** M1–M6
 
 ### 12.1 Objective
@@ -1050,7 +1051,7 @@ Integrate the AEW skill layer with the deterministic engine into a coherent engi
 
 The first integrated skill is:
 
-`aew/skills/aew-task/SKILL.MD`
+`aew/skills/aew-task/SKILL.md`
 
 It should orchestrate:
 
@@ -1115,6 +1116,18 @@ M7 is verified when:
 - Checkpoints survive interruption.
 - Delivery artifacts are traceable.
 - Real engineering tasks can be completed without bypassing safety boundaries.
+
+### 12.6 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| JSON task intake | `1f8a9b1` | Exercised all four profiles through the CLI, validated exported Task documents, and confirmed the advisory gate for incomplete preflight. |
+| Trusted workflow handoff | `68b0158` | Exercised read-only Explore, denied isolated work for unresolved preflight, rejected resume after workspace drift, and resumed after revalidation. Ran an isolated check through the host and produced a schema-valid delivery draft and signed review. |
+| Skill integration | This documentation commit | Connected the task skill to the JSON CLI and trusted handoff, and verified the documented module command against the real repository. |
+
+The full local suite with Docker enabled reported **214 passed, 3 skipped**. Ruff lint and formatting passed. A read-only Explore intake on shared `master` at `53ad6c6` returned `awaiting_approval` with an investigation request and left the checkout unchanged.
+
+The isolated implementation scenario used mocked remote observations and real Git, SQLite, Docker, and signed host checks. Authenticated live GitHub CLI verification remains open from M1. The skill documents the local interface and trust boundary. Trusted host provisioning and publication remain separately authorized. Hosted CI awaits publication. M8 awaits a new assignment.
 
 ---
 
