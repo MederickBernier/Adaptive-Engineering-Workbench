@@ -23,6 +23,23 @@ class Checkpoint:
     reason: str | None
 
 
+@dataclass(frozen=True)
+class CheckEvidence:
+    evidence_id: str
+    execution_id: str
+    task_id: str
+    plan_revision: int
+    work_unit_id: str
+    repository: str
+    commit: str
+    review_digest: str
+    check: str
+    exit_code: int
+    attempt: int
+    image: str
+    observed_at: str
+
+
 class CheckpointStore:
     """Store budgets and operation state in a database controlled by the host."""
 
@@ -34,6 +51,9 @@ class CheckpointStore:
                 "id TEXT PRIMARY KEY, binding TEXT NOT NULL, started REAL NOT NULL, "
                 "last_seen REAL NOT NULL, iterations INTEGER NOT NULL, calls INTEGER NOT NULL, "
                 "status TEXT NOT NULL, path TEXT, oid TEXT, reason TEXT)"
+            )
+            db.execute(
+                "CREATE TABLE IF NOT EXISTS check_evidence (id TEXT PRIMARY KEY, payload TEXT NOT NULL)"
             )
 
     @contextmanager
@@ -139,9 +159,16 @@ class CheckpointStore:
         return reserved
 
     def finish(
-        self, envelope: ExecutionEnvelope, expected: Checkpoint, *, success: bool
-    ) -> None:
-        now = datetime.now(UTC).timestamp()
+        self,
+        envelope: ExecutionEnvelope,
+        expected: Checkpoint,
+        *,
+        success: bool,
+        observed_check: tuple[str, int, str, str] | None = None,
+    ) -> CheckEvidence | None:
+        observed_at = datetime.now(UTC)
+        now = observed_at.timestamp()
+        evidence = None
         with self._write() as db:
             row = self._get(db, envelope)
             if (
@@ -163,8 +190,44 @@ class CheckpointStore:
                     envelope.execution_id,
                 ),
             )
+            if reason is None and observed_check is not None:
+                name, exit_code, review_digest, image = observed_check
+                data = {
+                    "execution_id": envelope.execution_id,
+                    "task_id": envelope.task_id,
+                    "plan_revision": envelope.plan_revision,
+                    "work_unit_id": envelope.work_unit_id,
+                    "repository": envelope.workspace.repository,
+                    "commit": envelope.workspace.commit,
+                    "review_digest": review_digest,
+                    "check": name,
+                    "exit_code": exit_code,
+                    "attempt": expected.tool_calls,
+                    "image": image,
+                    "observed_at": observed_at.isoformat(),
+                }
+                payload = json.dumps(data, sort_keys=True, separators=(",", ":"))
+                identifier = "check-" + sha256(payload.encode()).hexdigest()
+                db.execute(
+                    "INSERT INTO check_evidence VALUES (?, ?)", (identifier, payload)
+                )
+                evidence = CheckEvidence(identifier, **data)
         if expired and success:
             raise ExecutionDenied("Execution deadline elapsed before completion")
+        return evidence
+
+    def load_check_evidence(self, identifier: str) -> CheckEvidence:
+        with closing(sqlite3.connect(self._path)) as db:
+            row = db.execute(
+                "SELECT payload FROM check_evidence WHERE id = ?", (identifier,)
+            ).fetchone()
+        if row is None:
+            raise KeyError(identifier)
+        if identifier != "check-" + sha256(row[0].encode()).hexdigest():
+            raise ExecutionDenied(
+                "Stored verification evidence failed its integrity check"
+            )
+        return CheckEvidence(identifier, **json.loads(row[0]))
 
     def remaining_seconds(self, envelope: ExecutionEnvelope) -> float:
         with self._write() as db:

@@ -54,6 +54,7 @@ class CheckResult:
     name: str
     exit_code: int
     review: ChangeReview
+    evidence_id: str
 
     @property
     def passed(self) -> bool:
@@ -298,8 +299,14 @@ class IsolatedChecks:
         except Exception:
             self._checkpoints.finish(envelope, checkpoint, success=False)
             raise
-        self._checkpoints.finish(envelope, checkpoint, success=True)
-        return CheckResult(name, exit_code, review)
+        evidence = self._checkpoints.finish(
+            envelope,
+            checkpoint,
+            success=True,
+            observed_check=(name, exit_code, review.digest, self._sandbox.image),
+        )
+        assert evidence is not None
+        return CheckResult(name, exit_code, review, evidence.evidence_id)
 
     def resume(
         self,
