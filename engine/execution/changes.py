@@ -33,6 +33,21 @@ class ChangeReview:
     diff: str
     digest: str
 
+    def verified_digest(self) -> str:
+        binding = json.dumps(
+            {
+                "commit": self.commit,
+                "replacements": [asdict(item) for item in self.replacements],
+                "diff": self.diff,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        observed = sha256(binding).hexdigest()
+        if observed != self.digest:
+            raise ExecutionDenied("Review digest does not match its content")
+        return observed
+
 
 def prepare_changes(
     repository: "GitRepository",

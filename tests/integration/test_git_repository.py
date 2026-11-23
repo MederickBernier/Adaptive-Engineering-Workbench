@@ -34,6 +34,7 @@ from engine.brain.store import ProjectBrain, assertion_id
 from engine.config import load_config
 from engine.context.assembly import assemble_context
 from engine.context.package import ContextPackage, ContextPackageError
+from engine.delivery.proposal import UnitDelivery, propose_commit
 from engine.execution.authority import (
     ExecutionDenied,
     GrantVerifier,
@@ -529,11 +530,11 @@ def implementation_execution(guarded_execution):
         grant_id=signed.grant.grant_id,
         operations=("implement", "run_tests"),
     )
-    return adapter, context, signed, envelope, policy
+    return adapter, context, signed, envelope, policy, revision
 
 
 def test_scoped_change_review_preserves_shared_checkout(implementation_execution):
-    adapter, context, signed, envelope, policy = implementation_execution
+    adapter, context, signed, envelope, policy, _ = implementation_execution
     path = "src/public.py"
     oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
     before = adapter.snapshot()
@@ -567,7 +568,7 @@ def test_scoped_change_review_preserves_shared_checkout(implementation_execution
 def test_isolated_check_materializes_review_without_host_access(
     implementation_execution, tmp_path
 ):
-    adapter, context, signed, envelope, policy = implementation_execution
+    adapter, context, signed, envelope, policy, _ = implementation_execution
     executable = shutil.which("docker")
     assert executable is not None
     sandbox = DockerSandbox(Path(executable), os.environ["AEW_TEST_DOCKER_IMAGE"])
@@ -627,6 +628,42 @@ def test_isolated_check_removes_timed_out_container():
     ).encode()
     with pytest.raises(ExecutionDenied, match="exceeded its deadline"):
         sandbox.run(payload, timeout=2)
+
+
+def test_delivery_proposal_excludes_unrelated_workspace_changes(
+    implementation_execution, tmp_path
+):
+    adapter, context, signed, envelope, policy, revision = implementation_execution
+    path = "src/public.py"
+    oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
+    review = prepare_changes(
+        adapter,
+        policy,
+        envelope,
+        context,
+        signed,
+        (TextReplacement(path, oid, "# proposed\n"),),
+    )
+    (adapter.root / "staged.txt").write_text("stage fixture", encoding="utf-8")
+    git(adapter.root, "add", "staged.txt")
+    (adapter.root / "untracked.txt").write_text("preserve fixture", encoding="utf-8")
+    before = adapter.snapshot()
+    proposal = propose_commit(
+        adapter,
+        CheckpointStore(tmp_path / "delivery.sqlite3"),
+        revision,
+        UnitDelivery(
+            envelope, review, "fix: update example", "Explain the new example."
+        ),
+    )
+    assert proposal["status"] == "not_ready"
+    assert [item["path"] for item in proposal["change_boundary"]["files"]] == [path]
+    assert "Excluded staged paths: staged.txt" in proposal["commit_proposal"]["body"]
+    assert (
+        "Excluded unstaged or untracked paths: untracked.txt"
+        in proposal["commit_proposal"]["body"]
+    )
+    assert adapter.snapshot() == before
 
 
 def test_repository_discovery(
