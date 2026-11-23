@@ -124,6 +124,35 @@ class ExecutionPolicy:
         operation: str,
         path: str,
     ) -> None:
+        if operation != "investigate":
+            raise ExecutionDenied("Operation has no supported guarded adapter")
+        self._authorize(envelope, context, signed, operation=operation, path=path)
+
+    def authorize_isolated(
+        self,
+        envelope: ExecutionEnvelope,
+        context: ContextPackage,
+        signed: SignedGrant,
+        *,
+        operation: str,
+        path: str,
+    ) -> tuple[str, ...]:
+        """Authorize a host-mediated edit or check for a disposable checkout."""
+        if operation not in ("implement", "run_tests"):
+            raise ExecutionDenied("Operation has no supported isolated adapter")
+        return self._authorize(
+            envelope, context, signed, operation=operation, path=path
+        )
+
+    def _authorize(
+        self,
+        envelope: ExecutionEnvelope,
+        context: ContextPackage,
+        signed: SignedGrant,
+        *,
+        operation: str,
+        path: str,
+    ) -> tuple[str, ...]:
         grant = self._verifier.verify(signed, now=datetime.now(UTC))
         if (
             grant.grant_id != envelope.grant_id
@@ -135,9 +164,6 @@ class ExecutionPolicy:
             or operation not in envelope.operations
         ):
             raise ExecutionDenied("Execution envelope exceeds the signed grant")
-        if operation != "investigate":
-            raise ExecutionDenied("Operation has no supported guarded adapter")
-
         observed, fingerprint = observe_workspace(self._repository)
         if observed != envelope.workspace or fingerprint != envelope.fingerprint:
             raise ExecutionDenied("Workspace or baseline changed")
@@ -212,3 +238,9 @@ class ExecutionPolicy:
             parse_scope(rule).matches(candidate.path) for rule in envelope.allowed_paths
         ):
             raise ExecutionDenied("The path is outside the execution scope")
+        return tuple(
+            check
+            for item in record["boundaries"]["work_units"]
+            if item["id"] == envelope.work_unit_id
+            for check in item["verification"]
+        )

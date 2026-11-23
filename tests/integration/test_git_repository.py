@@ -38,6 +38,7 @@ from engine.execution.authority import (
     GrantVerifier,
     TrustedGrantIssuer,
 )
+from engine.execution.changes import TextReplacement, prepare_changes
 from engine.execution.checkpoint import CheckpointStore
 from engine.execution.controller import ExecutionController
 from engine.execution.envelope import (
@@ -491,6 +492,64 @@ def test_guarded_read_rejects_mismatched_file_version(
     assert store.load(envelope).tool_calls == 1
     with pytest.raises(ExecutionDenied, match="exact committed file version"):
         controller.resume(envelope, context, signed)
+
+
+def test_scoped_change_review_preserves_shared_checkout(guarded_execution):
+    adapter, context, history, draft, signed, envelope, policy = guarded_execution
+    review_plan = build_plan(
+        draft.task,
+        assess(
+            risk=Level.MODERATE,
+            uncertainty=Level.LOW,
+            rationale="A bounded text replacement",
+        ),
+        approach="Review a replacement",
+        scope=("src/**",),
+        context=context,
+        work_units=(replace(draft.work_units[0], commit_required=True),),
+    )
+    revision = history.append(review_plan, expected_revision=1)
+    signed = TrustedGrantIssuer("engineer", b"a" * 32).issue(
+        task_id=draft.task.id,
+        plan_revision=revision.revision,
+        workspace=envelope.workspace,
+        work_units=("unit-1",),
+        operations=("implement", "run_tests"),
+        allowed_paths=("src/**",),
+        protected_paths=signed.grant.protected_paths,
+        issued_at=signed.grant.issued_at,
+        expires_at=signed.grant.expires_at,
+    )
+    envelope = replace(
+        envelope,
+        plan_revision=revision.revision,
+        grant_id=signed.grant.grant_id,
+        operations=("implement", "run_tests"),
+    )
+    path = "src/public.py"
+    oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
+    before = adapter.snapshot()
+    review = prepare_changes(
+        adapter,
+        policy,
+        envelope,
+        context,
+        signed,
+        (TextReplacement(path, oid, "# reviewed\n"),),
+    )
+    assert "-# example" in review.diff and "+# reviewed" in review.diff
+    assert len(review.digest) == 64
+    assert adapter.snapshot() == before
+    assert (adapter.root / path).read_bytes() == b"# example\n"
+    with pytest.raises(ExecutionDenied, match="expected committed file version"):
+        prepare_changes(
+            adapter,
+            policy,
+            envelope,
+            context,
+            signed,
+            (TextReplacement(path, "f" * 40, "different"),),
+        )
 
 
 def test_repository_discovery(
