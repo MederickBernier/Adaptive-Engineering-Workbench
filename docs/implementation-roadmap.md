@@ -940,7 +940,8 @@ The isolated implementation excludes shared-checkout application, direct Git mut
 # 11. M6 — Verification and Delivery Preparation
 
 **Priority:** High  
-**Status:** Planned  
+**Status:** Verified for delivery preparation
+
 **Depends on:** M5  
 **Primary ADR:** ADR-011
 
@@ -1020,6 +1021,18 @@ M6 is verified when:
 - PR descriptions are generated.
 - Publication is denied without appropriate authorization.
 - Sequential human checkpoints are enforced.
+
+### 11.8 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Verification evidence | `034430d` | Persisted observed exit codes with their execution and exact review boundary. Distinguished passed, failed, skipped, unavailable, and not executed without changing the v0.1 Delivery schema. |
+| Commit proposals | `32246ff` | Prepared one scoped proposal with file hashes and evidence. A disposable Git test confirmed staged and untracked files stayed outside the proposal and the workspace was unchanged. |
+| PR drafts and human checkpoints | `b9685a1` | Validated the Delivery document from a live isolated check. Accepted a review signed for the exact proposal and rejected an implementation grant as a review. Publication stayed disabled. |
+
+The local suite with Docker enabled reported **209 passed, 3 skipped**. Ruff lint, formatting, and the diff check passed. Hosted CI awaits publication.
+
+`prepare_delivery()` produces proposals and draft PR text. The trusted host can use `review_digest()` and `review_progress()` to confirm an ordered prefix of signed reviews. A review confirms the proposal and does not record a Git commit, publish to GitHub, or apply files to the shared checkout. Performing and reconciling those actions is a separate authorized workflow. M7 awaits a new assignment.
 
 ---
 
