@@ -24,6 +24,7 @@ import sys
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -35,7 +36,7 @@ from engine.brain.store import ProjectBrain, assertion_id
 from engine.config import load_config
 from engine.context.assembly import assemble_context
 from engine.context.package import ContextPackage, ContextPackageError
-from engine.delivery.draft import prepare_delivery, review_digest, review_progress
+from engine.delivery.draft import review_digest
 from engine.delivery.proposal import UnitDelivery, propose_commit
 from engine.delivery.verification import DeliveryError
 from engine.execution.authority import (
@@ -52,7 +53,7 @@ from engine.execution.envelope import (
     ExecutionPolicy,
     observe_workspace,
 )
-from engine.execution.isolated import DockerSandbox, IsolatedChecks
+from engine.execution.isolated import DockerSandbox
 from engine.git.preflight import GitPreflight
 from engine.git.repository import (
     GitCommandError,
@@ -63,6 +64,8 @@ from engine.git.repository import (
 from engine.planning.assessment import Level, assess
 from engine.planning.history import PlanHistory
 from engine.planning.plan import Task, WorkUnit, build_plan
+from engine.workflow.host import TaskHost
+from engine.workflow.intake import Intake, plan_task
 
 
 def git(
@@ -453,10 +456,41 @@ def test_execution_policy_rechecks_workspace_and_plan(guarded_execution):
         )
 
 
+def test_workflow_denies_isolated_operations_for_explore_or_unresolved_preflight(
+    guarded_execution, tmp_path
+):
+    adapter, context, history, draft, signed, envelope, _ = guarded_execution
+    host = TaskHost(
+        adapter,
+        history,
+        GrantVerifier("engineer", b"a" * 32, is_revoked=lambda _: False),
+        CheckpointStore(tmp_path / "workflow.sqlite3"),
+    )
+    with pytest.raises(ExecutionDenied, match="limited to read-only"):
+        host.verify(envelope, context, signed, replacements=(), check="check")
+    standard = build_plan(
+        draft.task,
+        assess(risk=Level.MODERATE, uncertainty=Level.LOW, rationale="Review fixture"),
+        approach="Review edit",
+        scope=draft.scope,
+        work_units=(replace(draft.work_units[0], commit_required=True),),
+        context=context,
+    )
+    revision = history.append(standard, expected_revision=1)
+    with pytest.raises(ExecutionDenied, match="Resolve mandatory preflight"):
+        host.draft(
+            task_id=draft.task.id,
+            revision=revision.revision,
+            units=(),
+            base_branch="master",
+            head_branch="example",
+        )
+
+
 def test_guarded_read_resumes_without_replay_or_budget_reset(
     guarded_execution, tmp_path: Path
 ):
-    adapter, context, _, _, signed, envelope, policy = guarded_execution
+    adapter, context, history, _, signed, envelope, _ = guarded_execution
     envelope = replace(envelope, budget=ExecutionBudget(2, 2, 120))
     path = "src/public.py"
     expected = adapter.committed_files(envelope.workspace.commit, path)[0].oid
@@ -465,10 +499,21 @@ def test_guarded_read_resumes_without_replay_or_budget_reset(
     original_repo = adapter.snapshot()
     abandoned = store.reserve(envelope, path, expected)
     reopened = CheckpointStore(checkpoint_path)
-    controller = ExecutionController(adapter, policy, reopened)
+    controller = TaskHost(
+        adapter,
+        history,
+        GrantVerifier("engineer", b"a" * 32, is_revoked=lambda _: False),
+        reopened,
+    )
     with pytest.raises(ExecutionDenied, match="explicit checkpoint resumption"):
         controller.read(envelope, context, signed, path=path, expected_oid=expected)
-    controller.resume(envelope, context, signed)
+    new_file = adapter.root / "interruption.txt"
+    new_file.write_text("external edit", encoding="utf-8")
+    with pytest.raises(ExecutionDenied, match="clean, attached"):
+        controller.resume_read(envelope, context, signed)
+    assert reopened.load(envelope).tool_calls == 1
+    new_file.unlink()
+    controller.resume_read(envelope, context, signed)
     assert reopened.load(envelope).tool_calls == 1
     evidence = controller.read(
         envelope, context, signed, path=path, expected_oid=expected
@@ -481,7 +526,7 @@ def test_guarded_read_resumes_without_replay_or_budget_reset(
         controller.read(envelope, context, signed, path=path, expected_oid=expected)
     assert reopened.load(envelope).reason == "budget"
     with pytest.raises(ExecutionDenied, match="budget is exhausted"):
-        controller.resume(envelope, context, signed)
+        controller.resume_read(envelope, context, signed)
     assert adapter.snapshot() == original_repo
 
 
@@ -501,21 +546,46 @@ def test_guarded_read_rejects_mismatched_file_version(
 
 
 @pytest.fixture
-def implementation_execution(guarded_execution):
-    adapter, context, history, draft, signed, envelope, policy = guarded_execution
-    review_plan = build_plan(
-        draft.task,
-        assess(
-            risk=Level.MODERATE,
-            uncertainty=Level.LOW,
-            rationale="A bounded text replacement",
-        ),
-        approach="Review a replacement",
-        scope=("src/**",),
-        context=context,
-        work_units=(replace(draft.work_units[0], commit_required=True),),
+def implementation_execution(guarded_execution, tmp_path, monkeypatch):
+    adapter, _, _, draft, signed, envelope, policy = guarded_execution
+    commit = envelope.workspace.commit
+    monkeypatch.setattr(
+        adapter, "integration_branch_commit", lambda *_args, **_kwargs: commit
     )
-    revision = history.append(review_plan, expected_revision=1)
+    monkeypatch.setattr(
+        adapter,
+        "remote_branch_commit",
+        lambda branch, **_kwargs: commit if branch == "master" else None,
+    )
+    monkeypatch.setattr(
+        adapter, "github_remote_repository", lambda _: "example/project"
+    )
+    provider = Mock(repository="example/project")
+    provider.open_pull_requests.return_value = ()
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
+    result = plan_task(
+        adapter,
+        brain,
+        Intake(
+            draft.task,
+            assess(
+                risk=Level.MODERATE,
+                uncertainty=Level.LOW,
+                rationale="A bounded text replacement",
+            ),
+            approach="Review a replacement",
+            task_type="fix",
+            region="src",
+            scope=("src/**",),
+            verification=("Compare source to recorded object",),
+            work_units=(replace(draft.work_units[0], commit_required=True),),
+            expected_revision=1,
+        ),
+        github=provider,
+        verify_remote=True,
+    )
+    assert result.state == "awaiting_approval"
+    revision, context = result.revision, result.context
     signed = TrustedGrantIssuer("engineer", b"a" * 32).issue(
         task_id=draft.task.id,
         plan_revision=revision.revision,
@@ -532,6 +602,8 @@ def implementation_execution(guarded_execution):
         plan_revision=revision.revision,
         grant_id=signed.grant.grant_id,
         operations=("implement", "run_tests"),
+        context_id=context.package_id,
+        snapshot_id=context.to_dict()["identity"]["revision"]["snapshot_id"],
     )
     return adapter, context, signed, envelope, policy, revision
 
@@ -571,7 +643,7 @@ def test_scoped_change_review_preserves_shared_checkout(implementation_execution
 def test_isolated_check_materializes_review_without_host_access(
     implementation_execution, tmp_path
 ):
-    adapter, context, signed, envelope, policy, _ = implementation_execution
+    adapter, context, signed, envelope, _, _ = implementation_execution
     executable = shutil.which("docker")
     assert executable is not None
     sandbox = DockerSandbox(Path(executable), os.environ["AEW_TEST_DOCKER_IMAGE"])
@@ -587,12 +659,17 @@ def test_isolated_check_materializes_review_without_host_access(
     )
     argv = ("/usr/local/bin/python", "-I", "-c", check_script)
     store = CheckpointStore(tmp_path / "isolated.sqlite3")
-    controller = IsolatedChecks(
+    history = PlanHistory(
+        ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
+    )
+    verifier = GrantVerifier("engineer", b"a" * 32, is_revoked=lambda _: False)
+    controller = TaskHost(
         adapter,
-        policy,
+        history,
+        verifier,
         store,
-        sandbox,
-        {check: argv, "unrecorded": argv},
+        sandbox=sandbox,
+        allowed_checks={check: argv, "unrecorded": argv},
     )
     path = "src/public.py"
     oid = adapter.committed_files(envelope.workspace.commit, path)[0].oid
@@ -602,16 +679,17 @@ def test_isolated_check_materializes_review_without_host_access(
     )
     before = adapter.snapshot()
     with pytest.raises(ExecutionDenied, match="outside the recorded"):
-        controller.run(envelope, context, signed, replacements=edits, name="unrecorded")
-    result = controller.run(envelope, context, signed, replacements=edits, name=check)
+        controller.verify(
+            envelope, context, signed, replacements=edits, check="unrecorded"
+        )
+    result = controller.verify(
+        envelope, context, signed, replacements=edits, check=check
+    )
     assert result.passed
     assert "+# reviewed" in result.review.diff
     assert adapter.snapshot() == before
     assert (adapter.root / path).read_bytes() == b"# example\n"
     assert not (adapter.root / "src/new.py").exists()
-    history = PlanHistory(
-        ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
-    )
     options = {
         "task_id": envelope.task_id,
         "revision": envelope.plan_revision,
@@ -627,7 +705,7 @@ def test_isolated_check_materializes_review_without_host_access(
         "base_branch": "master",
         "head_branch": "test/example",
     }
-    document = prepare_delivery(adapter, history, store, **options)
+    document = controller.draft(**options)
     schema = Path(__file__).resolve().parents[2] / "contracts/delivery.schema.json"
     Draft202012Validator(json.loads(schema.read_bytes())).validate(document)
     assert document["work_units"][0]["verification"][0]["status"] == "passed"
@@ -635,10 +713,7 @@ def test_isolated_check_materializes_review_without_host_access(
     assert all(
         item["status"] == "not_authorized" for item in document["publication"].values()
     )
-    verifier = GrantVerifier("engineer", b"a" * 32, is_revoked=lambda _: False)
-    assert review_progress(
-        adapter, history, store, verifier, reviews=(), **options
-    ) == ((), "unit-1")
+    assert controller.review(reviews=(), **options) == ((), "unit-1")
     review_grant = TrustedGrantIssuer("engineer", b"a" * 32).issue(
         task_id=envelope.task_id,
         plan_revision=envelope.plan_revision,
@@ -650,11 +725,9 @@ def test_isolated_check_materializes_review_without_host_access(
         expires_at=signed.grant.expires_at,
         review_digest=review_digest(document, "unit-1"),
     )
-    assert review_progress(
-        adapter, history, store, verifier, reviews=(review_grant,), **options
-    ) == (("unit-1",), None)
+    assert controller.review(reviews=(review_grant,), **options) == (("unit-1",), None)
     with pytest.raises(DeliveryError, match="exact sequential checkpoint"):
-        review_progress(adapter, history, store, verifier, reviews=(signed,), **options)
+        controller.review(reviews=(signed,), **options)
     assert adapter.snapshot() == before
 
 
