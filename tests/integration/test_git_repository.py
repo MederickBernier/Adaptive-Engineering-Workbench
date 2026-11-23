@@ -879,6 +879,31 @@ def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncert
     assert GitRepository(repository).snapshot() == before
 
 
+def test_discovery_reuses_pinned_coverage_without_rescanning(
+    repository, tmp_path, monkeypatch
+):
+    adapter = GitRepository(repository)
+    database = tmp_path / "brain.sqlite3"
+    brain = ProjectBrain(database, adapter.root.as_uri())
+    original = discover(adapter, brain, regions=(".", "src"))
+    scan = Mock(wraps=adapter.committed_files)
+    monkeypatch.setattr(adapter, "committed_files", scan)
+    assert (
+        discover(
+            adapter, ProjectBrain(database, brain.repository), regions=("src", ".")
+        )
+        == original
+    )
+    scan.assert_not_called()
+    assert discover(adapter, brain, regions=("src",)).id != original.id
+    assert scan.call_count == 1
+    (repository / "new.py").write_text("answer = 42", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Change committed discovery input")
+    assert discover(adapter, brain, regions=(".", "src")).revision != original.revision
+    assert scan.call_count == 3
+
+
 def test_repository_discovery(
     repository: Path,
 ) -> None:

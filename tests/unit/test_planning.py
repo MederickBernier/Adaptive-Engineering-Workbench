@@ -295,6 +295,7 @@ def test_plan_history_migrates_existing_project_brain(tmp_path: Path) -> None:
     original = brain.publish(Revision(brain.repository, "a" * 40), (".",), ())
     with closing(sqlite3.connect(path)) as db, db:
         db.execute("DROP TABLE plan_revisions")
+        db.execute("DROP TABLE discovery_cache")
         db.execute("PRAGMA user_version = 1")
     migrated = ProjectBrain(path, brain.repository)
     assert migrated.load(original.id) == original

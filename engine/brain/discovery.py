@@ -19,6 +19,8 @@ from engine.brain.model import (
 from engine.brain.store import ProjectBrain
 from engine.git.repository import GitRepository, GitTreeFile
 
+_DETECTOR_VERSION = 1
+
 _LANGUAGES = {
     ".c": "C",
     ".cpp": "C++",
@@ -162,10 +164,16 @@ def discover(
     if not regions:
         raise ValueError("Discovery requires at least one region")
 
-    members: list[Assertion] = []
-    for region in sorted(set(regions)):
+    coverage = tuple(sorted(set(regions)))
+    for region in coverage:
         if region != ".":
             validate_path(region)
+    cached = brain.cached_discovery(revision, coverage, _DETECTOR_VERSION)
+    if cached is not None and repository.has_commit(revision.commit):
+        return cached
+
+    members: list[Assertion] = []
+    for region in coverage:
         facts: dict[tuple[str, str, Depth], list[Evidence]] = {}
         for file in repository.committed_files(revision.commit, region):
             evidence = Evidence(
@@ -191,4 +199,6 @@ def discover(
             )
             for (relation, target, depth), evidence in facts.items()
         )
-    return brain.publish(revision, regions, members)
+    snapshot = brain.publish(revision, coverage, members)
+    brain.remember_discovery(snapshot, _DETECTOR_VERSION)
+    return snapshot

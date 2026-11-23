@@ -21,7 +21,7 @@ from engine.brain.model import (
     validate_path,
 )
 
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 _SCHEMA = (
     "CREATE TABLE project (id INTEGER PRIMARY KEY CHECK (id = 1), repository TEXT NOT NULL)",
     (
@@ -39,6 +39,11 @@ _PLAN_SCHEMA = (
     "CREATE TABLE plan_revisions (plan_id TEXT NOT NULL, revision INTEGER NOT NULL, "
     "recorded_at TEXT NOT NULL, material TEXT NOT NULL, payload TEXT NOT NULL, "
     "changes TEXT NOT NULL, PRIMARY KEY (plan_id, revision))"
+)
+_DISCOVERY_SCHEMA = (
+    "CREATE TABLE discovery_cache (commit_id TEXT NOT NULL, regions TEXT NOT NULL, "
+    "detector_version INTEGER NOT NULL, snapshot_id TEXT NOT NULL REFERENCES snapshots(id), "
+    "PRIMARY KEY (commit_id, regions, detector_version))"
 )
 
 
@@ -83,11 +88,13 @@ class ProjectBrain:
                 for statement in _SCHEMA:
                     db.execute(statement)
                 db.execute("INSERT INTO project VALUES (1, ?)", (repository,))
-            elif version not in (1, _SCHEMA_VERSION):
+            elif version not in (1, 2, _SCHEMA_VERSION):
                 raise ValueError(f"Unsupported Project Brain schema version: {version}")
             self._check_identity(db)
             if version < 2:
                 db.execute(_PLAN_SCHEMA)
+            if version < 3:
+                db.execute(_DISCOVERY_SCHEMA)
                 db.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
     def _connect(self) -> sqlite3.Connection:
@@ -231,3 +238,44 @@ class ProjectBrain:
                     (commit,),
                 )
             )
+
+    def cached_discovery(
+        self, revision: Revision, regions: tuple[str, ...], detector_version: int
+    ) -> Snapshot | None:
+        with closing(self._connect()) as db:
+            self._check_identity(db)
+            row = db.execute(
+                "SELECT snapshot_id FROM discovery_cache "
+                "WHERE commit_id = ? AND regions = ? AND detector_version = ?",
+                (revision.commit, _json(regions), detector_version),
+            ).fetchone()
+        if row is None:
+            return None
+        snapshot = self.load(row[0])
+        if snapshot.revision != revision or snapshot.regions != regions:
+            raise SnapshotIntegrityError(
+                "Cached discovery has an incompatible revision or coverage"
+            )
+        return snapshot
+
+    def remember_discovery(self, snapshot: Snapshot, detector_version: int) -> None:
+        with self._write() as db:
+            self._check_identity(db)
+            params = (
+                snapshot.revision.commit,
+                _json(snapshot.regions),
+                detector_version,
+            )
+            db.execute(
+                "INSERT INTO discovery_cache VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING",
+                (*params, snapshot.id),
+            )
+            row = db.execute(
+                "SELECT snapshot_id FROM discovery_cache "
+                "WHERE commit_id = ? AND regions = ? AND detector_version = ?",
+                params,
+            ).fetchone()
+            if row != (snapshot.id,):
+                raise SnapshotIntegrityError(
+                    "Discovery results disagree for the same committed inputs"
+                )
