@@ -322,7 +322,7 @@ Version 0.1 includes the task skill and the contracts below. The baseline suite 
 
 JSON Schema validates structure; cross-contract references, authenticity of approvals, source consistency, and protected operations require semantic checks in the engine. In particular, no model-authored document can authorize itself.
 
-The local Python prototype implements revision-scoped Project Brain storage, task intake and planning, Git preflight, guarded isolated execution, and delivery preparation. GitHub coordination is covered by mocked adapter tests. Authenticated live GitHub CLI verification remains open. Shared-checkout promotion and publication require separate authorization.
+The local Python prototype implements revision-scoped Project Brain storage, task intake and planning, Git preflight, guarded isolated execution, and delivery preparation. GitHub coordination is covered by mocked adapter tests and authenticated live verification recorded under M1 in the roadmap. Shared-checkout promotion and publication require separate authorization.
 
 ## 19. Documentation maintenance and change control
 

@@ -303,7 +303,7 @@ M0 does not implement:
 # 6. M1 — Read-Only Repository Preflight
 
 **Priority:** Critical  
-**Status:** Partially verified
+**Status:** Verified
 
 **Depends on:** M0  
 **Primary ADRs:** ADR-004, ADR-005
@@ -451,7 +451,9 @@ On 2026-11-23, a read-only smoke check on the real repository reconciled local a
 
 `python -m pytest -q` reported 150 passed and 3 skipped on the assessment commit. Ruff lint and format checks passed. The [hosted Actions run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45158314459) completed successfully on Linux and Windows.
 
-The remaining M1 verification is an authenticated end-to-end run of the GitHub CLI adapter against a repository with a known open PR and changed files. A read-only REST check found no open PRs in the project repository during closeout. The workstation had no GitHub CLI on PATH or GitHub token in its environment. M2 awaits a new assignment.
+On 2026-11-23, the authenticated portable GitHub CLI 2.105.0 confirmed that AEW had no open PRs and that remote `master` matched `056c4f3`. A live read-only check against `python-jsonschema/jsonschema` enumerated five open PRs. The adapter's changed-file list for [PR #1609](https://github.com/python-jsonschema/jsonschema/pull/1609) matched the paginated API response, and preflight reported the expected overlap in `.pre-commit-config.yaml`. The temporary checkout remained unchanged.
+
+A second end-to-end check reconciled `main` at `64b62de5df4e`, confirmed the proposed branch was absent on the live remote, and returned `WARNING` for overlapping changes in [PR #1561](https://github.com/python-jsonschema/jsonschema/pull/1561), which had nine changed paths. The temporary checkout remained clean and unchanged.
 
 ---
 
@@ -590,7 +592,7 @@ The MVP uses one SQLite database per checkout with distinct durable and derived 
 
 The Windows Python 3.13 suite reported **155 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check published 19 observations at `f92d290`, reopened their SQLite database, retrieved five observations scoped to `engine`, and observed unchanged Git and workspace state. The [hosted M2 CI run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45160912271) completed successfully.
 
-Discovery covers committed Git content and recognized file types and manifests. Behavioral and semantic assertions require supplied investigation evidence. Retrieval uses retained snapshots, committed path changes, and explicit dependencies. The Project Brain does not ingest the shared Markdown vault during M2. M1's authenticated live GitHub CLI verification remains open.
+Discovery covers committed Git content and recognized file types and manifests. Behavioral and semantic assertions require supplied investigation evidence. Retrieval uses retained snapshots, committed path changes, and explicit dependencies. The Project Brain does not ingest the shared Markdown vault during M2. M1's authenticated live GitHub CLI verification was pending at this closeout and is recorded above.
 
 ---
 
@@ -696,7 +698,7 @@ M3 is verified when:
 
 The [hosted CI run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45162250614) completed successfully for the Linux and Windows matrix on `2859655`.
 
-The codec verifies integrity independently of structural schema validation and trusted issuance. Expansion is restricted to one snapshot and workspace binding. A changed snapshot or revision requires separate assembly and applicable reconciliation. The prior M1 authenticated GitHub CLI verification remains open. M4 awaits a new assignment.
+The codec verifies integrity independently of structural schema validation and trusted issuance. Expansion is restricted to one snapshot and workspace binding. A changed snapshot or revision requires separate assembly and applicable reconciliation. The prior M1 authenticated GitHub CLI verification was pending at this closeout and is recorded above. M4 awaits a new assignment.
 
 ---
 
@@ -788,7 +790,7 @@ M4 is verified when:
 
 The local suite reported **194 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check produced two Standard plan revisions from a verified Context Package and local preflight. It validated both Task documents, confirmed dependency order and material-change reassessment, and observed an unchanged Git workspace. Hosted CI for M4 awaits publication.
 
-The engine consumes explicit assessment inputs and Work Unit proposals. It recommends planning depth and checks consistency. Trusted grant issuance, runtime scope enforcement, and publication remain outside M4. The authenticated live GitHub CLI verification from M1 remains open. M5 awaits a new assignment.
+The engine consumes explicit assessment inputs and Work Unit proposals. It recommends planning depth and checks consistency. Trusted grant issuance, runtime scope enforcement, and publication remain outside M4. The authenticated live GitHub CLI verification from M1 was pending at this closeout and is recorded above. M5 awaits a new assignment.
 
 ---
 
@@ -933,7 +935,7 @@ The local suite reported **207 passed, 3 skipped** with the two Docker integrati
 
 The delivered adapters use bounded UTF-8 files from a clean, attached checkout's committed Git tree. A trusted host holds the signing and verification key and controls the plan store, revocation source, checkpoint database, Docker engine, image, and check allowlist. Keep those capabilities outside the agent's tool interface. A read or isolated check consumes one iteration and one tool call. A check returns its observed exit code and the original review diff. Test-generated filesystem changes are discarded with the container.
 
-The isolated implementation excludes shared-checkout application, direct Git mutation, and publication. Applying a reviewed diff requires separate engineer authorization through a trusted process. Authenticated M1 GitHub CLI verification and the reviewed v0.1 Execution Contract correction for read-only delivery remain open. M6 awaits a new assignment.
+The isolated implementation excludes shared-checkout application, direct Git mutation, and publication. Applying a reviewed diff requires separate engineer authorization through a trusted process. The reviewed v0.1 Execution Contract correction for read-only delivery remains open. Authenticated M1 GitHub CLI verification was pending at this closeout and is recorded above. M6 awaits a new assignment.
 
 ---
 
@@ -1127,7 +1129,7 @@ M7 is verified when:
 
 The full local suite with Docker enabled reported **214 passed, 3 skipped**. Ruff lint and formatting passed. A read-only Explore intake on shared `master` at `53ad6c6` returned `awaiting_approval` with an investigation request and left the checkout unchanged.
 
-The isolated implementation scenario used mocked remote observations and real Git, SQLite, Docker, and signed host checks. Authenticated live GitHub CLI verification remains open from M1. The skill documents the local interface and trust boundary. Trusted host provisioning and publication remain separately authorized. Hosted CI awaits publication. M8 awaits a new assignment.
+The isolated implementation scenario used mocked remote observations and real Git, SQLite, Docker, and signed host checks. Authenticated live GitHub CLI verification was pending at this closeout and is recorded under M1. The skill documents the local interface and trust boundary. Trusted host provisioning and publication remain separately authorized. Hosted CI awaits publication. M8 awaits a new assignment.
 
 ---
 
@@ -1218,7 +1220,7 @@ Run `python -m scripts.pilot_m8 --repository <attached-checkout>` to reproduce t
 
 Local preflight took 256.8–324.8 ms. Discovery after a new fixture revision took 96.3–215.6 ms. Each checkout reused its exact snapshot and generated one investigation approval request. Intake preserved Git and workspace state. The AEW checkout yielded 24 available assertions. These are single-machine observations. They do not measure human intervention frequency or speed relative to a manual workflow.
 
-The full suite with Docker enabled reported **220 passed, 3 skipped**. Ruff lint and formatting passed. The tests cover dirty worktrees, conflicting and incomplete PR evidence, stale context, revoked grants, invalid envelopes, interrupted execution, concurrent workspace changes, unavailable providers, and inconsistent SQLite state. Hosted CI awaits publication. External adoption and authenticated live GitHub CLI verification remain open.
+The full suite with Docker enabled reported **220 passed, 3 skipped**. Ruff lint and formatting passed. The tests cover dirty worktrees, conflicting and incomplete PR evidence, stale context, revoked grants, invalid envelopes, interrupted execution, concurrent workspace changes, unavailable providers, and inconsistent SQLite state. [Hosted CI](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45266345311) passed on Ubuntu and Windows for `056c4f3`. The authenticated GitHub CLI follow-up is recorded in the M1 verification record. External adoption remains open.
 
 ---
 
