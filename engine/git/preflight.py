@@ -104,6 +104,7 @@ class LocalPreflightReport:
     pull_requests_checked: bool = False
     baseline: IntegrationBaseline | None = None
     pull_requests: tuple[GitHubPullRequest, ...] = ()
+    remote_branch_collision: bool | None = None
 
 
 class ScopeKind(str, Enum):
@@ -702,7 +703,20 @@ class GitPreflight:
         )
         if any(finding.code == "PR_BRANCH_COLLISION" for finding in findings):
             branch_collision = True
-        elif pull_requests is not None and proposed_branch is not None:
+        remote_branch_collision = None
+        if (
+            proposed_branch is not None
+            and verify_remote
+            and self._config.check_remote_collision
+        ):
+            remote_branch_collision = self._check_remote_branch(
+                remote, proposed_branch, findings
+            )
+            if branch_collision is not True:
+                branch_collision = remote_branch_collision
+        elif proposed_branch is not None and (
+            verify_remote or pull_requests is not None
+        ):
             findings.append(
                 PreflightFinding(
                     "REMOTE_BRANCH_COLLISION_NOT_VERIFIED",
@@ -737,4 +751,32 @@ class GitPreflight:
             baseline=baseline,
             pull_requests_checked=pull_requests is not None,
             pull_requests=pull_requests or (),
+            remote_branch_collision=remote_branch_collision,
         )
+
+    def _check_remote_branch(
+        self, remote: str, branch: str, findings: list[PreflightFinding]
+    ) -> bool | None:
+        reference = f"{remote}/{branch}"
+        try:
+            commit = self._repository.remote_branch_commit(branch, remote=remote)
+        except GitError:
+            findings.append(
+                PreflightFinding(
+                    "REMOTE_BRANCH_COLLISION_UNAVAILABLE",
+                    FindingSeverity.WARNING,
+                    "The proposed branch could not be checked against live remote refs.",
+                    (reference,),
+                )
+            )
+            return None
+        if commit is not None:
+            findings.append(
+                PreflightFinding(
+                    "REMOTE_BRANCH_COLLISION",
+                    FindingSeverity.BLOCKING,
+                    "The proposed branch already exists on the configured remote.",
+                    (reference, commit),
+                )
+            )
+        return commit is not None

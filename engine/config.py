@@ -274,6 +274,10 @@ class AEWConfig:
     def branch_pattern(self) -> str:
         return self.values["git"]["branches"]["naming_pattern"]
 
+    @property
+    def check_remote_collision(self) -> bool:
+        return self.values["git"]["branches"]["check_remote_collision"]
+
     def generate_branch_name(
         self,
         *,

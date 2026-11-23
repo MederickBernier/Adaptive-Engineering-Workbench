@@ -83,6 +83,8 @@ class FakeGitRepository:
     remote_error: bool = False
     object_available: bool = True
     github_repository: str | None = "example/api"
+    remote_task_commit: str | None = None
+    remote_task_error: bool = False
 
     def snapshot(self) -> RepositorySnapshot:
         return RepositorySnapshot(
@@ -118,7 +120,12 @@ class FakeGitRepository:
         return self.local_commit
 
     def remote_branch_commit(self, branch: str, *, remote: str) -> str | None:
-        assert (remote, branch) == ("origin", "master")
+        assert remote == "origin"
+        if branch != "master":
+            assert branch == "mb/fix/142-null-customer-response"
+            if self.remote_task_error:
+                raise GitCommandError("Task branch lookup unavailable")
+            return self.remote_task_commit
         if self.remote_error:
             raise GitCommandError("Remote unavailable")
         return self.remote_commit
@@ -147,12 +154,17 @@ def inspect(
     scope: list[str] | None = None,
     verify_remote: bool = False,
     github: GitHubClient | None = None,
+    check_remote_collision: bool = True,
 ):
     """Run preflight with consistent test inputs."""
 
+    settings = config()
+    settings.values["git"]["branches"]["check_remote_collision"] = (
+        check_remote_collision
+    )
     preflight = GitPreflight(
         repository,  # type: ignore[arg-type]
-        config(),
+        settings,
         github=github,
     )
 
@@ -186,6 +198,45 @@ def test_matching_remote_baseline_keeps_preflight_incomplete() -> None:
     assert report.remote_freshness_verified is True
     assert report.status == PreflightStatus.UNAVAILABLE
     assert "PR_PREFLIGHT_NOT_PERFORMED" in finding_codes(report)
+    assert report.remote_branch_collision is False
+
+
+def test_live_remote_branch_collision_blocks_preflight() -> None:
+    report = inspect(FakeGitRepository(remote_task_commit=COMMIT), verify_remote=True)
+
+    assert report.remote_branch_collision is True
+    assert report.branch_collision is True
+    assert report.status == PreflightStatus.BLOCKED
+    finding = next(
+        item for item in report.findings if item.code == "REMOTE_BRANCH_COLLISION"
+    )
+    assert finding.evidence == ("origin/mb/fix/142-null-customer-response", COMMIT)
+
+
+@pytest.mark.parametrize("local_collision", [False, True])
+def test_remote_branch_lookup_failure_preserves_known_collision(
+    local_collision: bool,
+) -> None:
+    report = inspect(
+        FakeGitRepository(collision=local_collision, remote_task_error=True),
+        verify_remote=True,
+    )
+
+    assert report.remote_branch_collision is None
+    assert report.branch_collision is (True if local_collision else None)
+    assert "REMOTE_BRANCH_COLLISION_UNAVAILABLE" in finding_codes(report)
+
+
+def test_disabled_remote_collision_check_does_not_report_clearance() -> None:
+    report = inspect(
+        FakeGitRepository(remote_task_commit=COMMIT),
+        verify_remote=True,
+        check_remote_collision=False,
+    )
+
+    assert report.remote_branch_collision is None
+    assert report.status == PreflightStatus.UNAVAILABLE
+    assert "REMOTE_BRANCH_COLLISION_NOT_VERIFIED" in finding_codes(report)
 
 
 def test_pull_request_coordination_reports_overlap_issue_dependency_and_collision() -> (

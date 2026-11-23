@@ -392,6 +392,8 @@ GitHub Actions runs these checks on Linux and Windows for pushes to `master` and
 
 To include pull request evidence in Python preflight, construct `GitPreflight` with `github=GitHubClient("owner/repository")` for the selected github.com Git remote. Use an authenticated GitHub CLI that supports `gh api --paginate --slurp` and `gh pr view --json closingIssuesReferences`. Incomplete enumeration leaves pull request coordination unverified.
 
+Pass `verify_remote=True` to `GitPreflight.inspect()` to observe the integration HEAD and, with `git.branches.check_remote_collision` enabled, check the proposed branch against live refs. `remote_branch_collision` is `False` only when the live lookup confirms the branch is absent. A failed or skipped lookup leaves it unset.
+
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 
 ## Project Direction
