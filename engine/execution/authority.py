@@ -58,6 +58,7 @@ class ApprovalGrant:
     protected_paths: tuple[str, ...]
     issued_at: datetime
     expires_at: datetime
+    review_digest: str | None = None
 
     def __post_init__(self) -> None:
         if not all(
@@ -102,6 +103,8 @@ def _signature(grant: ApprovalGrant, key: bytes) -> bytes:
     payload = asdict(grant)
     payload["issued_at"] = grant.issued_at.isoformat()
     payload["expires_at"] = grant.expires_at.isoformat()
+    if grant.review_digest is None:
+        del payload["review_digest"]
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return digest(key, b"aew-approval-v1\0" + canonical, "sha256")
 
@@ -129,6 +132,7 @@ class TrustedGrantIssuer:
         protected_paths: tuple[str, ...] = (),
         issued_at: datetime,
         expires_at: datetime,
+        review_digest: str | None = None,
     ) -> SignedGrant:
         grant = ApprovalGrant(
             uuid4().hex,
@@ -142,6 +146,7 @@ class TrustedGrantIssuer:
             tuple(protected_paths),
             issued_at,
             expires_at,
+            review_digest,
         )
         return SignedGrant(grant, _signature(grant, self._key))
 

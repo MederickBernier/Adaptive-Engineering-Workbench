@@ -59,7 +59,7 @@ def propose_commit(
         )
     if (
         not unit.title.strip()
-        or len(unit.title.splitlines()) != 1
+        or any(char in unit.title for char in "\r\n")
         or not unit.summary.strip()
     ):
         raise DeliveryError(

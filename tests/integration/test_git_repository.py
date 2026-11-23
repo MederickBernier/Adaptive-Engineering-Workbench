@@ -34,7 +34,9 @@ from engine.brain.store import ProjectBrain, assertion_id
 from engine.config import load_config
 from engine.context.assembly import assemble_context
 from engine.context.package import ContextPackage, ContextPackageError
+from engine.delivery.draft import prepare_delivery, review_digest, review_progress
 from engine.delivery.proposal import UnitDelivery, propose_commit
+from engine.delivery.verification import DeliveryError
 from engine.execution.authority import (
     ExecutionDenied,
     GrantVerifier,
@@ -583,10 +585,11 @@ def test_isolated_check_materializes_review_without_host_access(
         "assert os.getuid() == 65534; assert os.statvfs('/').f_flag & os.ST_RDONLY"
     )
     argv = ("/usr/local/bin/python", "-I", "-c", check_script)
+    store = CheckpointStore(tmp_path / "isolated.sqlite3")
     controller = IsolatedChecks(
         adapter,
         policy,
-        CheckpointStore(tmp_path / "isolated.sqlite3"),
+        store,
         sandbox,
         {check: argv, "unrecorded": argv},
     )
@@ -605,6 +608,53 @@ def test_isolated_check_materializes_review_without_host_access(
     assert adapter.snapshot() == before
     assert (adapter.root / path).read_bytes() == b"# example\n"
     assert not (adapter.root / "src/new.py").exists()
+    history = PlanHistory(
+        ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
+    )
+    options = {
+        "task_id": envelope.task_id,
+        "revision": envelope.plan_revision,
+        "units": (
+            UnitDelivery(
+                envelope,
+                result.review,
+                "fix: review example",
+                "Refresh the example.",
+                (result.evidence_id,),
+            ),
+        ),
+        "base_branch": "master",
+        "head_branch": "test/example",
+    }
+    document = prepare_delivery(adapter, history, store, **options)
+    schema = Path(__file__).resolve().parents[2] / "contracts/delivery.schema.json"
+    Draft202012Validator(json.loads(schema.read_bytes())).validate(document)
+    assert document["work_units"][0]["verification"][0]["status"] == "passed"
+    assert document["pull_request"]["status"] == "proposed"
+    assert all(
+        item["status"] == "not_authorized" for item in document["publication"].values()
+    )
+    verifier = GrantVerifier("engineer", b"a" * 32, is_revoked=lambda _: False)
+    assert review_progress(
+        adapter, history, store, verifier, reviews=(), **options
+    ) == ((), "unit-1")
+    review_grant = TrustedGrantIssuer("engineer", b"a" * 32).issue(
+        task_id=envelope.task_id,
+        plan_revision=envelope.plan_revision,
+        workspace=envelope.workspace,
+        work_units=("unit-1",),
+        operations=("commit",),
+        allowed_paths=("src/**",),
+        issued_at=signed.grant.issued_at,
+        expires_at=signed.grant.expires_at,
+        review_digest=review_digest(document, "unit-1"),
+    )
+    assert review_progress(
+        adapter, history, store, verifier, reviews=(review_grant,), **options
+    ) == (("unit-1",), None)
+    with pytest.raises(DeliveryError, match="exact sequential checkpoint"):
+        review_progress(adapter, history, store, verifier, reviews=(signed,), **options)
+    assert adapter.snapshot() == before
 
 
 @pytest.mark.skipif(
