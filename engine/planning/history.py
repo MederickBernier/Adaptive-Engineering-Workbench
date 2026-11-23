@@ -118,6 +118,13 @@ class PlanHistory:
     def __init__(self, brain: ProjectBrain) -> None:
         self._brain = brain
 
+    def latest_revision(self, identifier: str) -> int | None:
+        with closing(sqlite3.connect(self._brain.path)) as db:
+            return db.execute(
+                "SELECT max(revision) FROM plan_revisions WHERE plan_id = ?",
+                (identifier,),
+            ).fetchone()[0]
+
     def append(self, draft: PlanDraft, *, expected_revision: int = 0) -> PlanRevision:
         """Append a draft or return the existing revision for an identical retry."""
         if draft.task.repository != self._brain.repository:

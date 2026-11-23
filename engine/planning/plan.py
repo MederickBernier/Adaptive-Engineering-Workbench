@@ -9,7 +9,6 @@ from engine.git.preflight import (
     LocalPreflightReport,
     OverlapStatus,
     ScopeExpression,
-    ScopeKind,
     ScopeSyntaxError,
     parse_scope,
 )
@@ -22,16 +21,6 @@ def _scopes(scope: tuple[str, ...]) -> tuple[ScopeExpression, ...]:
         return tuple(parse_scope(item) for item in scope)
     except ScopeSyntaxError as error:
         raise PlanningError(f"Invalid planning scope: {error}") from error
-
-
-def _contains(parent: ScopeExpression, child: ScopeExpression) -> bool:
-    if child.kind == ScopeKind.FILE:
-        return parent.matches(child.path)
-    if parent.kind == ScopeKind.FILE:
-        return False
-    if parent.path == child.path:
-        return parent.kind == ScopeKind.RECURSIVE or child.kind == ScopeKind.DIRECTORY
-    return child.path.startswith(parent.path + "/")
 
 
 @dataclass(frozen=True)
@@ -226,7 +215,7 @@ def _ordered_units(
         if set(unit.dependencies) - by_id.keys():
             raise PlanningError(f"Unknown Work Unit dependency for {unit.id}")
         if any(
-            not any(_contains(parent, child) for parent in parents)
+            not any(parent.contains(child) for parent in parents)
             for child in _scopes(unit.scope)
         ):
             raise PlanningError(f"Work Unit scope exceeds the plan: {unit.id}")
@@ -280,7 +269,7 @@ def build_plan(
             )
         inspected = _scopes(preflight.intended_scope)
         if any(
-            not any(_contains(parent, child) for parent in inspected)
+            not any(parent.contains(child) for parent in inspected)
             for child in plan_scope
         ):
             review.append("Obtain preflight evidence for the full plan scope.")

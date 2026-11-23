@@ -19,6 +19,8 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -31,6 +33,17 @@ from engine.brain.store import ProjectBrain, assertion_id
 from engine.config import load_config
 from engine.context.assembly import assemble_context
 from engine.context.package import ContextPackage, ContextPackageError
+from engine.execution.authority import (
+    ExecutionDenied,
+    GrantVerifier,
+    TrustedGrantIssuer,
+)
+from engine.execution.envelope import (
+    ExecutionBudget,
+    ExecutionEnvelope,
+    ExecutionPolicy,
+    observe_workspace,
+)
 from engine.git.preflight import GitPreflight
 from engine.git.repository import (
     GitCommandError,
@@ -38,6 +51,9 @@ from engine.git.repository import (
     RepositoryNotFoundError,
     WorkspaceState,
 )
+from engine.planning.assessment import Level, assess
+from engine.planning.history import PlanHistory
+from engine.planning.plan import Task, WorkUnit, build_plan
 
 
 def git(
@@ -309,6 +325,123 @@ def test_context_assembly_requires_fingerprint_for_dirty_preflight(
         == "worktree-hash"
     )
     assert "uncommitted.txt" not in package.to_json().decode()
+
+
+@pytest.fixture
+def guarded_execution(repository: Path, tmp_path: Path):
+    (repository / "src").mkdir()
+    for name in ("public.py", "private.py"):
+        (repository / "src" / name).write_text("# example\n", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Add guarded fixture files")
+    adapter = GitRepository(repository)
+    workspace, fingerprint = observe_workspace(adapter)
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", workspace.repository)
+    snapshot = discover(adapter, brain, regions=("src",))
+    task = Task("m5-test", workspace.repository, "Read fixture", ("Record evidence",))
+    context = assemble_context(
+        adapter,
+        brain,
+        snapshot.id,
+        task_id=task.id,
+        branch=workspace.branch,
+        commit=workspace.commit,
+        region="src",
+    )
+    history = PlanHistory(brain)
+    draft = build_plan(
+        task,
+        assess(risk=Level.LOW, uncertainty=Level.HIGH, rationale="Inspect fixture"),
+        approach="Read committed evidence",
+        scope=("src/**",),
+        verification=("Stop when evidence is recorded",),
+        work_units=(
+            WorkUnit(
+                "unit-1",
+                "Read source",
+                ("src/**",),
+                task.acceptance,
+                ("Compare source to recorded object",),
+                commit_required=False,
+            ),
+        ),
+        context=context,
+        review_questions=("What does the source declare?",),
+        investigation_budget=3,
+    )
+    revision = history.append(draft)
+    now = datetime.now(UTC)
+    key = b"a" * 32
+    signed = TrustedGrantIssuer("engineer", key).issue(
+        task_id=task.id,
+        plan_revision=revision.revision,
+        workspace=workspace,
+        work_units=("unit-1",),
+        operations=("investigate", "implement"),
+        allowed_paths=("src/**",),
+        protected_paths=("src/private.py",),
+        issued_at=now,
+        expires_at=now + timedelta(minutes=5),
+    )
+    envelope = ExecutionEnvelope(
+        "test-execution",
+        task.id,
+        revision.revision,
+        "unit-1",
+        context.package_id,
+        snapshot.id,
+        signed.grant.grant_id,
+        workspace,
+        fingerprint,
+        ("investigate", "implement"),
+        ("src/**",),
+        ExecutionBudget(4, 4, 120),
+    )
+    policy = ExecutionPolicy(
+        adapter, history, GrantVerifier("engineer", key, is_revoked=lambda _: False)
+    )
+    return adapter, context, history, draft, signed, envelope, policy
+
+
+def test_execution_policy_denies_protected_expanded_or_unsupported_access(
+    guarded_execution,
+):
+    _, context, _, _, signed, envelope, policy = guarded_execution
+    policy.authorize(
+        envelope, context, signed, operation="investigate", path="src/public.py"
+    )
+    with pytest.raises(ExecutionDenied, match="protected"):
+        policy.authorize(
+            envelope, context, signed, operation="investigate", path="src/private.py"
+        )
+    expanded = replace(envelope, allowed_paths=("src/**", "README.md"))
+    with pytest.raises(ExecutionDenied, match="expands beyond"):
+        policy.authorize(
+            expanded, context, signed, operation="investigate", path="src/public.py"
+        )
+    with pytest.raises(ExecutionDenied, match="no supported guarded adapter"):
+        policy.authorize(
+            envelope, context, signed, operation="implement", path="src/public.py"
+        )
+
+
+def test_execution_policy_rechecks_workspace_and_plan(guarded_execution):
+    adapter, context, history, draft, signed, envelope, policy = guarded_execution
+    unrelated = adapter.root / "unrelated.txt"
+    unrelated.write_text("preserve this edit", encoding="utf-8")
+    with pytest.raises(ExecutionDenied, match="clean, attached"):
+        policy.authorize(
+            envelope, context, signed, operation="investigate", path="src/public.py"
+        )
+    assert unrelated.read_text(encoding="utf-8") == "preserve this edit"
+    unrelated.unlink()
+    history.append(
+        replace(draft, approach="Reconsider the investigation"), expected_revision=1
+    )
+    with pytest.raises(ExecutionDenied, match="superseded"):
+        policy.authorize(
+            envelope, context, signed, operation="investigate", path="src/public.py"
+        )
 
 
 def test_repository_discovery(

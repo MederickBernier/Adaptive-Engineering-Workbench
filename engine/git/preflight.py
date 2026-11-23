@@ -139,6 +139,15 @@ class ScopeExpression:
 
         return candidate == self.path or candidate.startswith(self.path + "/")
 
+    def contains(self, child: ScopeExpression) -> bool:
+        if child.kind == ScopeKind.FILE:
+            return self.matches(child.path)
+        if self.kind == ScopeKind.FILE:
+            return False
+        if self.path == child.path:
+            return self.kind == ScopeKind.RECURSIVE or child.kind == ScopeKind.DIRECTORY
+        return child.path.startswith(self.path + "/")
+
 
 class ScopeSyntaxError(ValueError):
     """Raised when a scope expression is unsupported."""
