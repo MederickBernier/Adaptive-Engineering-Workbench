@@ -16,16 +16,22 @@ The adapter must not modify Git or workspace state.
 
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from engine.brain.discovery import discover
-from engine.brain.model import Assertion, Depth, Evidence, Revision
+from engine.brain.model import Assertion, Depth, Evidence, Revision, Verification
 from engine.brain.retrieval import retrieve
-from engine.brain.store import ProjectBrain
+from engine.brain.store import ProjectBrain, assertion_id
+from engine.config import load_config
+from engine.context.assembly import assemble_context
+from engine.context.package import ContextPackage, ContextPackageError
+from engine.git.preflight import GitPreflight
 from engine.git.repository import (
     GitCommandError,
     GitRepository,
@@ -186,6 +192,123 @@ def test_brain_retrieval_invalidates_changed_regions_and_dependents(
         adapter, reopened, snapshot.id, target_commit=new_commit, region="ui"
     ).current == (ui,)
     assert reopened.load(snapshot.id) == snapshot
+
+
+def test_context_assembly_selects_provenance_and_reconciles_explicitly(
+    repository: Path, tmp_path: Path
+) -> None:
+    for name in ("api", "storage", "unrelated"):
+        source = repository / name / "source.py"
+        source.parent.mkdir()
+        source.write_text(f"# {name}", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Create context inputs")
+    adapter = GitRepository(repository)
+    old_commit = git(repository, "rev-parse", "HEAD")
+    revision = Revision(adapter.root.as_uri(), old_commit)
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", revision.repository)
+
+    def claim(subject, relation, target, verification=Verification.VERIFIED):
+        path = f"{subject}/source.py"
+        return Assertion(
+            revision,
+            subject,
+            relation,
+            target,
+            (Evidence(f"git:{old_commit}:{path}", "Inspected committed source", path),),
+            subject,
+            Depth.STRUCTURAL,
+            verification=verification,
+        )
+
+    direct = claim("api", "depends_on", "storage")
+    provisional = claim("api", "uses", "optional caching", Verification.PROVISIONAL)
+    related = claim("storage", "contract", "storage interface")
+    unrelated = claim("unrelated", "language", "Python")
+    snapshot = brain.publish(
+        revision,
+        ("api", "storage", "unrelated"),
+        (direct, provisional, related, unrelated),
+    )
+    options = {"task_id": "task-1", "branch": "master", "region": "api"}
+    package = assemble_context(
+        adapter, brain, snapshot.id, commit=old_commit, **options
+    )
+    document = package.to_dict()
+    schema = Path(__file__).resolve().parents[2] / "contracts" / "context.schema.json"
+    Draft202012Validator(json.loads(schema.read_bytes())).validate(document)
+    entries = {item["id"]: item for item in document["knowledge"]["assertions"]}
+    assert set(entries) == {
+        assertion_id(item) for item in (direct, provisional, related)
+    }
+    assert entries[assertion_id(related)]["relevance"] == "related"
+    assert entries[assertion_id(provisional)]["verification"] == "provisional"
+    assert entries[assertion_id(direct)]["evidence"][0]["revision"] == old_commit
+    assert ContextPackage.from_json(package.to_json()) == package
+    assert (
+        assemble_context(adapter, brain, snapshot.id, commit=old_commit, **options)
+        == package
+    )
+
+    budget = len(package.to_json()) - 200
+    bounded = assemble_context(
+        adapter, brain, snapshot.id, commit=old_commit, max_bytes=budget, **options
+    )
+    assert len(bounded.to_json()) <= budget
+    assert 0 < len(bounded.to_dict()["knowledge"]["assertions"]) < len(entries)
+    assert any(
+        "budget" in text for text in bounded.to_dict()["integrity"]["limitations"]
+    )
+    with pytest.raises(ContextPackageError, match="smaller than required metadata"):
+        assemble_context(
+            adapter, brain, snapshot.id, commit=old_commit, max_bytes=1, **options
+        )
+
+    (repository / "storage/source.py").write_text("# modified", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Change dependency evidence")
+    new_commit = git(repository, "rev-parse", "HEAD")
+    with pytest.raises(ContextPackageError, match="explicit reconciliation"):
+        assemble_context(adapter, brain, snapshot.id, commit=new_commit, **options)
+    reconciled = assemble_context(
+        adapter, brain, snapshot.id, commit=new_commit, reconcile=True, **options
+    )
+    assert reconciled.to_dict()["identity"]["revision"]["commit"] == new_commit
+    assert reconciled.to_dict()["integrity"]["freshness"] == "stale"
+    assert all(
+        item["verification"] == "stale"
+        for item in reconciled.to_dict()["knowledge"]["assertions"]
+    )
+    assert package.to_dict() == document
+
+
+def test_context_assembly_requires_fingerprint_for_dirty_preflight(
+    repository: Path, tmp_path: Path
+) -> None:
+    adapter = GitRepository(repository)
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
+    snapshot = discover(adapter, brain)
+    (repository / "uncommitted.txt").write_text("uncommitted", encoding="utf-8")
+    report = GitPreflight(adapter, load_config(repository)).inspect(
+        task_type="fix", issue="1", title="Example", intended_scope=["README.md"]
+    )
+    options = {
+        "task_id": "task-1",
+        "branch": "master",
+        "region": ".",
+        "commit": snapshot.revision.commit,
+        "preflight": report,
+    }
+    with pytest.raises(ContextPackageError, match="requires a workspace fingerprint"):
+        assemble_context(adapter, brain, snapshot.id, **options)
+    package = assemble_context(
+        adapter, brain, snapshot.id, workspace_fingerprint="worktree-hash", **options
+    )
+    assert (
+        package.to_dict()["identity"]["revision"]["workspace_fingerprint"]
+        == "worktree-hash"
+    )
+    assert "uncommitted.txt" not in package.to_json().decode()
 
 
 def test_repository_discovery(

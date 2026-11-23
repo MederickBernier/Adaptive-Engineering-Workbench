@@ -45,6 +45,11 @@ def _identity(payload: str) -> str:
     return sha256(payload.encode("utf-8")).hexdigest()
 
 
+def assertion_id(assertion: Assertion) -> str:
+    """Return the stable identifier used for snapshot membership."""
+    return _identity(_json(asdict(assertion)))
+
+
 def _decode_assertion(payload: str) -> Assertion:
     data = json.loads(payload)
     data["revision"] = Revision(**data["revision"])

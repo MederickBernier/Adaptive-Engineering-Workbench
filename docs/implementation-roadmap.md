@@ -658,6 +658,14 @@ Selection should prioritize:
 
 AEW should not inject the entire Project Brain into every task.
 
+`assemble_context()` selects a literal repository region and available direct
+dependencies from a named snapshot. It prioritizes current, direct and verified
+claims and bounds the complete serialized package in bytes. A different commit
+requires explicit reconciliation. The package records the source revision of
+each included assertion and marks affected claims stale. Dirty preflight
+evidence requires a caller-supplied workspace fingerprint. Knowledge selection
+reads committed evidence.
+
 ### 8.5 Exit criteria
 
 M3 is verified when:
