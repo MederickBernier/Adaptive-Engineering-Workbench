@@ -38,6 +38,8 @@ from engine.execution.authority import (
     GrantVerifier,
     TrustedGrantIssuer,
 )
+from engine.execution.checkpoint import CheckpointStore
+from engine.execution.controller import ExecutionController
 from engine.execution.envelope import (
     ExecutionBudget,
     ExecutionEnvelope,
@@ -331,7 +333,7 @@ def test_context_assembly_requires_fingerprint_for_dirty_preflight(
 def guarded_execution(repository: Path, tmp_path: Path):
     (repository / "src").mkdir()
     for name in ("public.py", "private.py"):
-        (repository / "src" / name).write_text("# example\n", encoding="utf-8")
+        (repository / "src" / name).write_bytes(b"# example\n")
     git(repository, "add", ".")
     git(repository, "commit", "-m", "Add guarded fixture files")
     adapter = GitRepository(repository)
@@ -442,6 +444,53 @@ def test_execution_policy_rechecks_workspace_and_plan(guarded_execution):
         policy.authorize(
             envelope, context, signed, operation="investigate", path="src/public.py"
         )
+
+
+def test_guarded_read_resumes_without_replay_or_budget_reset(
+    guarded_execution, tmp_path: Path
+):
+    adapter, context, _, _, signed, envelope, policy = guarded_execution
+    envelope = replace(envelope, budget=ExecutionBudget(2, 2, 120))
+    path = "src/public.py"
+    expected = adapter.committed_files(envelope.workspace.commit, path)[0].oid
+    checkpoint_path = tmp_path / "execution.sqlite3"
+    store = CheckpointStore(checkpoint_path)
+    original_repo = adapter.snapshot()
+    abandoned = store.reserve(envelope, path, expected)
+    reopened = CheckpointStore(checkpoint_path)
+    controller = ExecutionController(adapter, policy, reopened)
+    with pytest.raises(ExecutionDenied, match="explicit checkpoint resumption"):
+        controller.read(envelope, context, signed, path=path, expected_oid=expected)
+    controller.resume(envelope, context, signed)
+    assert reopened.load(envelope).tool_calls == 1
+    evidence = controller.read(
+        envelope, context, signed, path=path, expected_oid=expected
+    )
+    assert evidence.content == "# example\n"
+    assert evidence.oid == expected
+    with pytest.raises(ExecutionDenied, match="superseded"):
+        store.finish(envelope, abandoned, success=True)
+    with pytest.raises(ExecutionDenied, match="budget is exhausted"):
+        controller.read(envelope, context, signed, path=path, expected_oid=expected)
+    assert reopened.load(envelope).reason == "budget"
+    with pytest.raises(ExecutionDenied, match="budget is exhausted"):
+        controller.resume(envelope, context, signed)
+    assert adapter.snapshot() == original_repo
+
+
+def test_guarded_read_rejects_mismatched_file_version(
+    guarded_execution, tmp_path: Path
+):
+    adapter, context, _, _, signed, envelope, policy = guarded_execution
+    store = CheckpointStore(tmp_path / "execution.sqlite3")
+    controller = ExecutionController(adapter, policy, store)
+    path = "src/public.py"
+    with pytest.raises(ExecutionDenied, match="exact committed file version"):
+        controller.read(envelope, context, signed, path=path, expected_oid="f" * 40)
+    assert store.load(envelope).reason == "tool_failure"
+    assert store.load(envelope).tool_calls == 1
+    with pytest.raises(ExecutionDenied, match="exact committed file version"):
+        controller.resume(envelope, context, signed)
 
 
 def test_repository_discovery(

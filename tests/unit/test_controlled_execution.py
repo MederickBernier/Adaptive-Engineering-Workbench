@@ -9,6 +9,8 @@ from engine.execution.authority import (
     TrustedGrantIssuer,
     WorkspaceBinding,
 )
+from engine.execution.checkpoint import CheckpointStore
+from engine.execution.envelope import ExecutionBudget, ExecutionEnvelope
 
 KEY = b"k" * 32
 NOW = datetime(2026, 1, 1, tzinfo=UTC)
@@ -56,3 +58,58 @@ def test_unavailable_revocation_is_fail_closed() -> None:
 
     with pytest.raises(ExecutionDenied, match="revocation status is unavailable"):
         GrantVerifier("engineer", KEY, is_revoked=unavailable).verify(grant(), now=NOW)
+
+
+import sqlite3
+from contextlib import closing
+
+
+@pytest.mark.parametrize(
+    "budget", [ExecutionBudget(1, 3, 100), ExecutionBudget(3, 1, 100)]
+)
+def test_checkpoint_suspends_when_either_counter_is_exhausted(tmp_path, budget):
+    envelope = ExecutionEnvelope(
+        "exec",
+        "task-1",
+        1,
+        "unit-1",
+        "ctx",
+        "snapshot",
+        "grant",
+        WORKSPACE,
+        "fingerprint",
+        ("investigate",),
+        ("src/**",),
+        budget,
+    )
+    store = CheckpointStore(tmp_path / "checkpoints.sqlite3")
+    started = store.reserve(envelope, "src/a.py", "b" * 40)
+    store.finish(envelope, started, success=True)
+    with pytest.raises(ExecutionDenied, match="budget is exhausted"):
+        store.reserve(envelope, "src/a.py", "b" * 40)
+    assert store.load(envelope).status == "suspended"
+
+
+def test_checkpoint_withholds_results_when_deadline_elapses(tmp_path):
+    envelope = ExecutionEnvelope(
+        "exec",
+        "task-1",
+        1,
+        "unit-1",
+        "ctx",
+        "snapshot",
+        "grant",
+        WORKSPACE,
+        "fingerprint",
+        ("investigate",),
+        ("src/**",),
+        ExecutionBudget(2, 2, 10),
+    )
+    path = tmp_path / "checkpoints.sqlite3"
+    store = CheckpointStore(path)
+    started = store.reserve(envelope, "src/a.py", "b" * 40)
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("UPDATE executions SET started = started - 20")
+    with pytest.raises(ExecutionDenied, match="deadline elapsed"):
+        store.finish(envelope, started, success=True)
+    assert store.load(envelope).reason == "budget"
