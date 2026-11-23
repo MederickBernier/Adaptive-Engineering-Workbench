@@ -703,7 +703,8 @@ The codec verifies integrity independently of structural schema validation and t
 # 9. M4 — Adaptive Task Planning
 
 **Priority:** High  
-**Status:** Planned  
+**Status:** Verified
+
 **Depends on:** M1, M3  
 **Primary ADRs:** ADR-011, ADR-012
 
@@ -776,6 +777,18 @@ M4 is verified when:
 - Plan revisions are tracked.
 - Approval requirements are identified.
 - Planning alone does not authorize implementation.
+
+### 9.7 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Adaptive assessment | `33dc18e` | Exercised all four profiles, risk-driven escalation, and recorded profile overrides. |
+| Advisory plans and Work Units | `dc15388` | Verified schema-compatible Task exports, a single-unit Quick plan, read-only Explore, dependency ordering, and rejection of invalid scope and dependency graphs. |
+| Revision history and approvals | `a68371c` | Reopened historical revisions, retained Project Brain snapshots through migration, rejected concurrent stale writes, and flagged material changes for approval reassessment. |
+
+The local suite reported **194 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check produced two Standard plan revisions from a verified Context Package and local preflight. It validated both Task documents, confirmed dependency order and material-change reassessment, and observed an unchanged Git workspace. Hosted CI for M4 awaits publication.
+
+The engine consumes explicit assessment inputs and Work Unit proposals. It recommends planning depth and checks consistency. Trusted grant issuance, runtime scope enforcement, and publication remain outside M4. The authenticated live GitHub CLI verification from M1 remains open. M5 awaits a new assignment.
 
 ---
 

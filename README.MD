@@ -426,6 +426,14 @@ Retrieval separates current and stale claims. A changed region or an explicit `d
 
 ---
 
+## Adaptive planning
+
+Call `assess()` with observed risk, uncertainty, and a rationale to recommend Quick, Standard, Deep, or Explore. `build_plan()` accepts that assessment, a task, and the relevant Context Package and preflight report. Quick can generate one Work Unit from the task acceptance criteria and verification checks. Supply explicit units with dependencies for Standard or Deep. Explore records investigation questions, stopping checks, and a budget.
+
+Use `PlanHistory(brain).append(draft)` to publish revision 1 in the checkout's Project Brain. Pass `expected_revision=1` to revise it, and use `load(plan_id, revision)` to retrieve a specific historical record. Opening a version 1 Project Brain adds the plan history table while preserving existing snapshots. Revision records identify material changes and approval checkpoints. The v0.1 Task document remains exportable, and its approval state describes requests only.
+
+---
+
 ## Project Direction
 
 AEW aims to make AI-assisted engineering more reliable, context-aware, and practical without removing developers from architectural and delivery decisions.
