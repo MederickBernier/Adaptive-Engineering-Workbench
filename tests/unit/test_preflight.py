@@ -201,6 +201,55 @@ def test_matching_remote_baseline_keeps_preflight_incomplete() -> None:
     assert report.remote_branch_collision is False
 
 
+@pytest.mark.parametrize(
+    ("repository", "scope", "expected"),
+    [
+        (FakeGitRepository(), ["src/customer/**"], PreflightStatus.PASSED),
+        (FakeGitRepository(branch=None), ["src/customer/**"], PreflightStatus.WARNING),
+        (
+            FakeGitRepository(changes=(change("src/customer/file.py"),)),
+            ["src/customer/**"],
+            PreflightStatus.WARNING,
+        ),
+        (
+            FakeGitRepository(local_commit=COMMIT),
+            ["src/customer/**"],
+            PreflightStatus.BLOCKED,
+        ),
+        (
+            FakeGitRepository(
+                changes=(change("src/customer/file.py", index="U", worktree="U"),)
+            ),
+            ["src/customer/**"],
+            PreflightStatus.BLOCKED,
+        ),
+        (
+            FakeGitRepository(integration_commit=COMMIT),
+            ["src/customer/**"],
+            PreflightStatus.UNAVAILABLE,
+        ),
+        (
+            FakeGitRepository(object_available=False),
+            ["src/customer/**"],
+            PreflightStatus.UNAVAILABLE,
+        ),
+        (FakeGitRepository(), [], PreflightStatus.UNAVAILABLE),
+        (FakeGitRepository(), ["src/customer/*.py"], PreflightStatus.UNAVAILABLE),
+    ],
+)
+def test_final_assessment_with_pull_request_evidence(
+    repository: FakeGitRepository, scope: list[str], expected: PreflightStatus
+) -> None:
+    github = Mock(spec=GitHubClient, repository="example/api")
+    github.open_pull_requests.return_value = ()
+
+    report = inspect(repository, scope=scope, github=github, verify_remote=True)
+
+    assert report.status == expected
+    assert report.intended_scope == tuple(scope)
+    assert report.pull_requests_checked
+
+
 def test_live_remote_branch_collision_blocks_preflight() -> None:
     report = inspect(FakeGitRepository(remote_task_commit=COMMIT), verify_remote=True)
 

@@ -394,6 +394,8 @@ To include pull request evidence in Python preflight, construct `GitPreflight` w
 
 Pass `verify_remote=True` to `GitPreflight.inspect()` to observe the integration HEAD and, with `git.branches.check_remote_collision` enabled, check the proposed branch against live refs. `remote_branch_collision` is `False` only when the live lookup confirms the branch is absent. A failed or skipped lookup leaves it unset.
 
+Preflight reports `BLOCKED` for known blockers and `UNAVAILABLE` when required evidence is missing. With complete baseline, branch, workspace scope, and pull request evidence, it reports `WARNING` for advisory findings or `PASSED` when there are none. These results are observations for review and grant no permission to modify the workspace.
+
 Until then, the approved architecture and versioned contracts define the project's intended behavior.
 
 ## Project Direction

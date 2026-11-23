@@ -105,6 +105,7 @@ class LocalPreflightReport:
     baseline: IntegrationBaseline | None = None
     pull_requests: tuple[GitHubPullRequest, ...] = ()
     remote_branch_collision: bool | None = None
+    intended_scope: tuple[str, ...] = ()
 
 
 class ScopeKind(str, Enum):
@@ -296,17 +297,11 @@ def assess_workspace(
 
     ordered_paths = tuple(sorted(changed_paths))
 
-    if not changes:
-        return WorkspaceAssessment(
-            state=WorkspaceState.CLEAN,
-            overlap=OverlapStatus.NONE,
-            changed_paths=(),
-            overlapping_paths=(),
-        )
+    state = WorkspaceState.DIRTY if changes else WorkspaceState.CLEAN
 
     if invalid_changed_path or not intended_scope:
         return WorkspaceAssessment(
-            state=WorkspaceState.DIRTY,
+            state=state,
             overlap=OverlapStatus.UNKNOWN,
             changed_paths=ordered_paths,
             overlapping_paths=(),
@@ -319,7 +314,7 @@ def assess_workspace(
             parsed_scopes.append(parse_scope(expression))
     except ScopeSyntaxError:
         return WorkspaceAssessment(
-            state=WorkspaceState.DIRTY,
+            state=state,
             overlap=OverlapStatus.UNKNOWN,
             changed_paths=ordered_paths,
             overlapping_paths=(),
@@ -331,12 +326,14 @@ def assess_workspace(
         if any(scope.matches(path) for scope in parsed_scopes)
     }
 
-    overlap = (
-        OverlapStatus.OVERLAPPING if overlapping else OverlapStatus.NON_OVERLAPPING
-    )
+    overlap = OverlapStatus.NONE
+    if changes:
+        overlap = (
+            OverlapStatus.OVERLAPPING if overlapping else OverlapStatus.NON_OVERLAPPING
+        )
 
     return WorkspaceAssessment(
-        state=WorkspaceState.DIRTY,
+        state=state,
         overlap=overlap,
         changed_paths=ordered_paths,
         overlapping_paths=tuple(sorted(overlapping)),
@@ -526,7 +523,7 @@ class GitPreflight:
             findings.append(
                 PreflightFinding(
                     "INTEGRATION_LOCAL_DIVERGENCE",
-                    FindingSeverity.WARNING,
+                    FindingSeverity.BLOCKING,
                     "The local integration branch differs from the observed remote HEAD.",
                     (branch, local_commit, remote_commit),
                 )
@@ -561,6 +558,18 @@ class GitPreflight:
         )
 
         findings: list[PreflightFinding] = []
+        conflicts = tuple(
+            sorted(change.path for change in snapshot.changes if change.conflicted)
+        )
+        if conflicts:
+            findings.append(
+                PreflightFinding(
+                    "WORKSPACE_UNMERGED_PATHS",
+                    FindingSeverity.BLOCKING,
+                    "Resolve unmerged workspace paths before proceeding.",
+                    conflicts,
+                )
+            )
 
         if snapshot.head_commit is None:
             findings.append(
@@ -726,11 +735,28 @@ class GitPreflight:
                 )
             )
 
-        blocked = any(
-            finding.severity == FindingSeverity.BLOCKING for finding in findings
+        baseline_verified = bool(
+            baseline
+            and baseline.object_available
+            and baseline.remote_commit == baseline.tracking_commit
         )
-
-        status = PreflightStatus.BLOCKED if blocked else PreflightStatus.UNAVAILABLE
+        evidence_complete = (
+            baseline_verified
+            and remote_branch_collision is not None
+            and proposed_branch is not None
+            and workspace.overlap != OverlapStatus.UNKNOWN
+            and pull_requests is not None
+            and not any(finding.code == "PR_PATH_SCOPE_UNKNOWN" for finding in findings)
+        )
+        severities = {finding.severity for finding in findings}
+        if FindingSeverity.BLOCKING in severities:
+            status = PreflightStatus.BLOCKED
+        elif not evidence_complete:
+            status = PreflightStatus.UNAVAILABLE
+        elif FindingSeverity.WARNING in severities:
+            status = PreflightStatus.WARNING
+        else:
+            status = PreflightStatus.PASSED
 
         return LocalPreflightReport(
             repository=snapshot.root,
@@ -743,15 +769,12 @@ class GitPreflight:
             workspace=workspace,
             findings=tuple(findings),
             status=status,
-            remote_freshness_verified=bool(
-                baseline
-                and baseline.object_available
-                and baseline.remote_commit == baseline.tracking_commit
-            ),
+            remote_freshness_verified=baseline_verified,
             baseline=baseline,
             pull_requests_checked=pull_requests is not None,
             pull_requests=pull_requests or (),
             remote_branch_collision=remote_branch_collision,
+            intended_scope=tuple(intended_scope),
         )
 
     def _check_remote_branch(
