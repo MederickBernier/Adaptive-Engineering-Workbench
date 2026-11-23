@@ -588,7 +588,7 @@ The MVP uses one SQLite database per checkout with distinct durable and derived 
 | Project discovery | `2784b43` | Identified language, framework, package manager, test, CI, and formatting signals from committed files. Targeted discovery excluded an unrelated region, and uncommitted edits did not change the profile. |
 | Retrieval and invalidation | `f92d290` | Reopened a snapshot by commit, detected both paths of a rename, marked dependent claims stale, retained unrelated knowledge and its depth, and recovered the original snapshot unchanged. |
 
-The Windows Python 3.13 suite reported **155 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check published 19 observations at `f92d290`, reopened their SQLite database, retrieved five observations scoped to `engine`, and observed unchanged Git and workspace state. Hosted CI for the M2 commits awaits publication.
+The Windows Python 3.13 suite reported **155 passed, 3 skipped**. Ruff lint and formatting passed. A real-repository smoke check published 19 observations at `f92d290`, reopened their SQLite database, retrieved five observations scoped to `engine`, and observed unchanged Git and workspace state. The [hosted M2 CI run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45160912271) completed successfully.
 
 Discovery covers committed Git content and recognized file types and manifests. Behavioral and semantic assertions require supplied investigation evidence. Retrieval uses retained snapshots, committed path changes, and explicit dependencies. The Project Brain does not ingest the shared Markdown vault during M2. M1's authenticated live GitHub CLI verification remains open.
 
@@ -597,7 +597,8 @@ Discovery covers committed Git content and recognized file types and manifests. 
 # 8. M3 — Immutable Context Packages
 
 **Priority:** High  
-**Status:** Planned  
+**Status:** In progress
+
 **Depends on:** M2  
 **Primary ADR:** ADR-009
 
@@ -634,6 +635,15 @@ Each package must include:
 - Evidence provenance is preserved.
 - Package expansion does not mutate the original.
 - Incompatible revision contexts are not silently mixed.
+
+The Python package codec represents the integrity algorithm and digest as
+`package_id = "ctx-sha256-" + SHA-256(canonical content)`. Canonical content is
+UTF-8 JSON with sorted object keys, ASCII escaping, compact separators, and
+preserved array order. The digest covers the entire document except its own
+top-level `package_id`. Duplicate JSON keys and nonfinite numbers are rejected.
+Consumers can verify emitted packages with `ContextPackage.from_json()` without
+accessing the Project Brain. This checks content integrity. Structural schema
+validation, evidence selection, and trusted issuance have separate responsibilities.
 
 ### 8.4 Context selection
 
