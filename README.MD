@@ -434,6 +434,16 @@ Use `PlanHistory(brain).append(draft)` to publish revision 1 in the checkout's P
 
 ---
 
+## Isolated execution
+
+The trusted host issues signed grants and exposes the supported execution adapters. Bind each operation to its Work Unit, Context Package, Git baseline, expected file versions, and budget.
+
+`IsolatedChecks` prepares approved text changes and runs a named verification command recorded in the Work Unit. The host supplies an absolute Docker executable, a local Linux image pinned by ID, and the allowed command. The disposable checkout contains committed text files and the reviewed changes, excludes protected files, and uses no host mounts or external network. Review the returned diff separately. Applying that diff to the shared checkout requires explicit authorization.
+
+To run the opt-in Docker integration tests, set `AEW_TEST_DOCKER_IMAGE` to the ID of a locally installed image with Python 3.13 at `/usr/local/bin/python`, then run pytest. The standard suite skips those two tests when the variable is unset.
+
+---
+
 ## Project Direction
 
 AEW aims to make AI-assisted engineering more reliable, context-aware, and practical without removing developers from architectural and delivery decisions.

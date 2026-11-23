@@ -795,7 +795,7 @@ The engine consumes explicit assessment inputs and Work Unit proposals. It recom
 # 10. M5 — Authorization and Controlled Execution
 
 **Priority:** Critical for write capabilities  
-**Status:** Partially verified
+**Status:** Verified for isolated execution
 
 **Depends on:** M4  
 **Primary ADRs:** ADR-004, ADR-010, ADR-012
@@ -926,12 +926,14 @@ M5 does not require:
 | Grant authentication | `584836f` | Verified signed issuer and scope, validity windows, and live revocation. Rejected modified grants and unavailable revocation evidence. |
 | Envelope policy | `e536d6a` | Checked task, plan, Work Unit, Context Package, workspace, baseline, and allowed paths. Denied protected paths and unsupported operations. |
 | Guarded reads and checkpoints | `f610e2e` | Read exact committed blob versions, preserved unrelated edits, retained budget counters across interruption, and revalidated explicit resumption. |
+| Scoped edit review | `9682b9b` | Verified expected file versions and scoped approval, rejected a mismatched object ID, and retained the original checkout content. |
+| Disposable execution | `0dfcc38` | Materialized approved text-file creation and replacement inside a disposable Linux container. Verified a host-allowlisted check, rejection of an unrecorded check, omitted protected content, loopback-only networking, a read-only container root, a non-root user, and removal after timeout. |
 
-The local suite reported **204 passed, 3 skipped**. Ruff lint and formatting passed. Hosted CI awaits publication.
+The local suite reported **207 passed, 3 skipped** with the two Docker integration tests enabled against the locally pinned official Python 3.13 image. Ruff lint and formatting passed. Hosted CI awaits publication.
 
-The delivered adapter reads bounded UTF-8 content from a clean, attached checkout's committed Git tree. A trusted host must hold the signing and verification key and control the plan store, revocation source, and checkpoint database. Keep those capabilities outside the agent's tool interface. Each read consumes one iteration and one tool call. The deadline gates acceptance of the result, with Git command timeout handling remaining separate.
+The delivered adapters use bounded UTF-8 files from a clean, attached checkout's committed Git tree. A trusted host holds the signing and verification key and controls the plan store, revocation source, checkpoint database, Docker engine, image, and check allowlist. Keep those capabilities outside the agent's tool interface. A read or isolated check consumes one iteration and one tool call. A check returns its observed exit code and the original review diff. Test-generated filesystem changes are discarded with the container.
 
-Full M5 completion requires a selected and verified isolation mechanism for workspace writes, subprocess execution, and Git mutations. The current adapter rejects those operations. The shared checkout has no demonstrated mechanism that both confines agent writes and prevents an external edit or path change from invalidating a checked write. An isolated disposable execution checkout with explicit promotion is one design for engineer review. Authenticated M1 GitHub CLI verification and the reviewed v0.1 Execution Contract correction for read-only delivery remain open.
+The isolated implementation excludes shared-checkout application, direct Git mutation, and publication. Applying a reviewed diff requires separate engineer authorization through a trusted process. Authenticated M1 GitHub CLI verification and the reviewed v0.1 Execution Contract correction for read-only delivery remain open. M6 awaits a new assignment.
 
 ---
 
