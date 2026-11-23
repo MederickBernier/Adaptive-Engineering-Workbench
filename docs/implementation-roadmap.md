@@ -795,7 +795,8 @@ The engine consumes explicit assessment inputs and Work Unit proposals. It recom
 # 10. M5 — Authorization and Controlled Execution
 
 **Priority:** Critical for write capabilities  
-**Status:** Planned  
+**Status:** Partially verified
+
 **Depends on:** M4  
 **Primary ADRs:** ADR-004, ADR-010, ADR-012
 
@@ -917,6 +918,20 @@ M5 does not require:
 - Distributed execution.
 - Multi-host scheduling.
 - Self-modifying authorization policies.
+
+### 10.10 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Grant authentication | `584836f` | Verified signed issuer and scope, validity windows, and live revocation. Rejected modified grants and unavailable revocation evidence. |
+| Envelope policy | `e536d6a` | Checked task, plan, Work Unit, Context Package, workspace, baseline, and allowed paths. Denied protected paths and unsupported operations. |
+| Guarded reads and checkpoints | `f610e2e` | Read exact committed blob versions, preserved unrelated edits, retained budget counters across interruption, and revalidated explicit resumption. |
+
+The local suite reported **204 passed, 3 skipped**. Ruff lint and formatting passed. Hosted CI awaits publication.
+
+The delivered adapter reads bounded UTF-8 content from a clean, attached checkout's committed Git tree. A trusted host must hold the signing and verification key and control the plan store, revocation source, and checkpoint database. Keep those capabilities outside the agent's tool interface. Each read consumes one iteration and one tool call. The deadline gates acceptance of the result, with Git command timeout handling remaining separate.
+
+Full M5 completion requires a selected and verified isolation mechanism for workspace writes, subprocess execution, and Git mutations. The current adapter rejects those operations. The shared checkout has no demonstrated mechanism that both confines agent writes and prevents an external edit or path change from invalidating a checked write. An isolated disposable execution checkout with explicit promotion is one design for engineer review. Authenticated M1 GitHub CLI verification and the reviewed v0.1 Execution Contract correction for read-only delivery remain open.
 
 ---
 
