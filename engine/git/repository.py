@@ -86,6 +86,12 @@ class GitBranch:
 
 
 @dataclass(frozen=True)
+class GitTreeFile:
+    path: str
+    oid: str
+
+
+@dataclass(frozen=True)
 class RepositorySnapshot:
     """Read-only observation of repository state."""
 
@@ -536,3 +542,49 @@ class GitRepository:
             check=False,
         )
         return result.returncode == 0 and result.stdout.strip() == commit
+
+    def committed_files(
+        self, commit: str, region: str = "."
+    ) -> tuple[GitTreeFile, ...]:
+        """List regular files in a commit, optionally under a literal region."""
+        if not self.has_commit(commit):
+            raise GitError("Commit is not available locally")
+        arguments = [
+            "--literal-pathspecs",
+            "ls-tree",
+            "-r",
+            "--full-tree",
+            "-z",
+            commit,
+            "--",
+        ]
+        if region != ".":
+            arguments.append(region)
+        output = self._run(arguments).stdout
+        entries = output.split("\0")
+        if entries.pop() != "":
+            raise GitCommandError("Unterminated Git tree record")
+        files = []
+        for entry in entries:
+            metadata, separator, path = entry.partition("\t")
+            fields = metadata.split()
+            if not separator or not path or len(fields) != 3:
+                raise GitCommandError("Unexpected Git tree record")
+            mode, kind, oid = fields
+            if kind == "blob" and mode in ("100644", "100755"):
+                files.append(GitTreeFile(path, oid))
+        return tuple(files)
+
+    def read_blob(self, oid: str, *, max_bytes: int) -> str | None:
+        """Read a bounded UTF-8 Git blob. Return None for oversized or binary input."""
+        if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", oid):
+            raise GitError("Expected a full Git object ID")
+        size = int(self._run(["cat-file", "-s", oid]).stdout.strip())
+        if size > max_bytes:
+            return None
+        content = self._run(["cat-file", "blob", oid]).stdout
+        try:
+            content.encode("utf-8")
+        except UnicodeEncodeError:
+            return None
+        return None if "\x00" in content else content

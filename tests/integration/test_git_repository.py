@@ -22,6 +22,9 @@ from pathlib import Path
 
 import pytest
 
+from engine.brain.discovery import discover
+from engine.brain.model import Depth
+from engine.brain.store import ProjectBrain
 from engine.git.repository import (
     GitCommandError,
     GitRepository,
@@ -73,6 +76,56 @@ def repository(tmp_path: Path) -> Path:
     git(root, "commit", "-m", "Initial commit")
 
     return root
+
+
+def test_project_brain_discovers_pinned_regions(
+    repository: Path, tmp_path: Path
+) -> None:
+    committed = {
+        "backend/app.py": "print('hello')",
+        "backend/pyproject.toml": '[project]\ndependencies = ["fastapi", "pytest"]\n'
+        "[tool.ruff]\nline-length = 100\n",
+        "frontend/app.ts": "export const value = 1;",
+        "frontend/package.json": '{"dependencies": {"react": "*"}}',
+        "frontend/package-lock.json": "{}",
+        ".github/workflows/ci.yml": "name: CI",
+    }
+    for path, content in committed.items():
+        file = repository / path
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(content, encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Add discovery inputs")
+    manifest = repository / "backend/pyproject.toml"
+    manifest.write_text('[project]\ndependencies = ["django"]\n', encoding="utf-8")
+
+    adapter = GitRepository(repository)
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", adapter.root.as_uri())
+    broad = discover(adapter, brain)
+    backend = discover(
+        adapter, brain, commit=broad.revision.commit, regions=("backend",)
+    )
+
+    facts = {(item.relation, item.target) for item in broad.assertions}
+    assert {
+        ("language", "Python"),
+        ("language", "TypeScript"),
+        ("framework", "FastAPI"),
+        ("framework", "React"),
+        ("package_manager", "npm"),
+        ("test_tool", "pytest"),
+        ("continuous_integration", "GitHub Actions"),
+        ("format_convention", "Ruff line length 100"),
+    } <= facts
+    assert ("framework", "Django") not in facts
+    assert backend.regions == ("backend",)
+    assert all(
+        evidence.path and evidence.path.startswith("backend/")
+        for item in backend.assertions
+        for evidence in item.evidence
+    )
+    assert any(item.depth == Depth.STRUCTURAL for item in backend.assertions)
+    assert brain.load(broad.id) == broad
 
 
 def test_repository_discovery(
