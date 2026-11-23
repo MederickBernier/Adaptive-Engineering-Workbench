@@ -8,6 +8,9 @@ version = "0.1.0"
 description = "Prototype engine for the Adaptive Engineering Workbench"
 requires-python = ">=3.13"
 
+[project.scripts]
+aew-task = "engine.workflow.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "jsonschema>=4.23,<5",

@@ -20,6 +20,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -714,6 +715,95 @@ def test_delivery_proposal_excludes_unrelated_workspace_changes(
         in proposal["commit_proposal"]["body"]
     )
     assert adapter.snapshot() == before
+
+
+@pytest.mark.parametrize(
+    ("profile", "risk", "uncertainty"),
+    [
+        ("quick", "low", "low"),
+        ("standard", "moderate", "low"),
+        ("deep", "high", "low"),
+        ("explore", "low", "high"),
+    ],
+)
+def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncertainty):
+    (repository / "src").mkdir()
+    (repository / "src/example.py").write_text("value = 1", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Add planning fixture")
+    before = GitRepository(repository).snapshot()
+    request = {
+        "task": {
+            "id": "m7-test",
+            "objective": "Review example behavior",
+            "acceptance": ["Record behavior"],
+        },
+        "assessment": {
+            "risk": risk,
+            "uncertainty": uncertainty,
+            "rationale": "Observed fixture",
+            "localized": True,
+            "acceptance_clear": True,
+        },
+        "approach": "Inspect the committed example",
+        "task_type": "fix",
+        "region": "src",
+        "scope": ["src/**"],
+        "verification": ["Inspect the recorded example"],
+    }
+    if profile in ("standard", "deep"):
+        request["work_units"] = [
+            {
+                "id": "verify",
+                "objective": "Verify fixture",
+                "scope": ["src/**"],
+                "acceptance": ["Observe report"],
+                "verification": ["Inspect fixture"],
+                "dependencies": ["inspect"],
+            },
+            {
+                "id": "inspect",
+                "objective": "Inspect fixture",
+                "scope": ["src/example.py"],
+                "acceptance": ["Observe source"],
+                "verification": ["Read fixture"],
+            },
+        ]
+    if profile == "explore":
+        request.update(questions=["What does the example do?"], investigation_budget=3)
+    root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "engine.workflow.cli",
+            "--repository",
+            str(repository),
+            "--brain",
+            str(tmp_path / "workflow.sqlite3"),
+        ],
+        cwd=root,
+        input=json.dumps(request),
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    )
+    output = json.loads(result.stdout)
+    document = output["plan"]["task_document"]
+    schema = json.loads((root / "contracts/task.schema.json").read_bytes())
+    Draft202012Validator(schema).validate(document)
+    assert document["assessment"]["profile"] == profile
+    assert document["approval"]["status"] == "pending"
+    assert output["state"] == (
+        "awaiting_approval" if profile == "explore" else "preflight_unresolved"
+    )
+    if profile in ("standard", "deep"):
+        assert [unit["id"] for unit in document["plan"]["work_units"]] == [
+            "inspect",
+            "verify",
+        ]
+    assert GitRepository(repository).snapshot() == before
 
 
 def test_repository_discovery(
