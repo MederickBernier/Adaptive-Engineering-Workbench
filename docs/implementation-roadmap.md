@@ -668,6 +668,13 @@ reads committed evidence.
 
 ### 8.5 Exit criteria
 
+`expand_context()` seals a child package from a verified parent and a second
+package with the same task, repository, branch, commit, workspace fingerprint,
+and snapshot. It preserves the parent evidence, records `parent_package_id`,
+and rejects a conflict or a budget too small to include the combined evidence.
+For another revision or snapshot, assemble a separate package with explicit
+reconciliation as needed.
+
 M3 is verified when:
 
 - A task can receive a valid Context Package.
