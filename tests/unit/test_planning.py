@@ -1,11 +1,18 @@
 import json
+import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
 
+from engine.brain.model import Revision
+from engine.brain.store import ProjectBrain
 from engine.context.package import ContextPackage
 from engine.planning.assessment import Level, PlanningError, Profile, assess
+from engine.planning.history import PlanConflict, PlanHistory
 from engine.planning.plan import Task, WorkUnit, build_plan
 
 
@@ -209,3 +216,90 @@ def test_plan_rejects_context_for_a_different_task() -> None:
     assessment = assess(risk=Level.LOW, uncertainty=Level.LOW, rationale="Bounded task")
     with pytest.raises(PlanningError, match="different task or repository"):
         build_plan(task(), assessment, approach="Inspect callers", context=context)
+
+
+def quick_draft(
+    scope: str = "src/search.py", *, rationale: str = "Established contract"
+):
+    return build_plan(
+        task(),
+        assess(
+            risk=Level.LOW,
+            uncertainty=Level.LOW,
+            localized=True,
+            acceptance_clear=True,
+            rationale=rationale,
+        ),
+        approach="Reuse existing behavior",
+        scope=(scope,),
+        verification=("Run search tests",),
+    )
+
+
+def test_plan_history_preserves_revisions_and_classifies_edits(
+    tmp_path: Path, task_schema
+) -> None:
+    path = tmp_path / "brain.sqlite3"
+    history = PlanHistory(ProjectBrain(path, task().repository))
+    first = history.append(quick_draft())
+    assert history.append(quick_draft()) == first
+
+    spelling = history.append(
+        quick_draft(rationale="Established search contract"), expected_revision=1
+    )
+    assert spelling.previous_revision == 1
+    assert spelling.material_changes == ()
+    assert not spelling.approval_reassessment_required
+
+    expanded = history.append(
+        quick_draft("src/**", rationale="Established search contract"),
+        expected_revision=2,
+    )
+    assert {"scope", "work_units", "approval_checkpoints"} <= set(
+        expanded.material_changes
+    )
+    assert expanded.approval_reassessment_required
+    assert expanded.plan_id == first.plan_id
+    reopened = PlanHistory(ProjectBrain(path, task().repository))
+    assert reopened.load(first.plan_id, 1) == first
+    record = reopened.load(first.plan_id, 3).to_record()
+    task_schema.validate(record["task_document"])
+    assert record["task_document"]["approval"]["status"] == "pending"
+    assert "grant_id" not in record["task_document"]["approval"]
+    assert record["task_document"]["plan"]["revision"] == 3
+    with pytest.raises(PlanConflict, match="Expected plan revision 1, found 3"):
+        history.append(quick_draft("other.py"), expected_revision=1)
+
+
+def test_concurrent_plan_appends_require_a_current_predecessor(tmp_path: Path) -> None:
+    history = PlanHistory(ProjectBrain(tmp_path / "brain.sqlite3", task().repository))
+    first = history.append(quick_draft())
+
+    def append(scope: str) -> str:
+        try:
+            return str(history.append(quick_draft(scope), expected_revision=1).revision)
+        except PlanConflict:
+            return "conflict"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        assert sorted(executor.map(append, ["src/one.py", "src/two.py"])) == [
+            "2",
+            "conflict",
+        ]
+    assert history.load(first.plan_id, 1) == first
+
+
+def test_plan_history_migrates_existing_project_brain(tmp_path: Path) -> None:
+    path = tmp_path / "brain.sqlite3"
+    brain = ProjectBrain(path, task().repository)
+    original = brain.publish(Revision(brain.repository, "a" * 40), (".",), ())
+    with closing(sqlite3.connect(path)) as db, db:
+        db.execute("DROP TABLE plan_revisions")
+        db.execute("PRAGMA user_version = 1")
+    migrated = ProjectBrain(path, brain.repository)
+    assert migrated.load(original.id) == original
+    assert PlanHistory(migrated).append(quick_draft()).revision == 1
+    with pytest.raises(PlanningError, match="does not match"):
+        PlanHistory(migrated).append(
+            replace(quick_draft(), task=replace(task(), repository="elsewhere"))
+        )

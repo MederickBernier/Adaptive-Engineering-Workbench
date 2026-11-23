@@ -21,7 +21,7 @@ from engine.brain.model import (
     validate_path,
 )
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _SCHEMA = (
     "CREATE TABLE project (id INTEGER PRIMARY KEY CHECK (id = 1), repository TEXT NOT NULL)",
     (
@@ -34,6 +34,11 @@ _SCHEMA = (
         "assertion_id TEXT NOT NULL REFERENCES assertions(id), "
         "PRIMARY KEY (snapshot_id, assertion_id))"
     ),
+)
+_PLAN_SCHEMA = (
+    "CREATE TABLE plan_revisions (plan_id TEXT NOT NULL, revision INTEGER NOT NULL, "
+    "recorded_at TEXT NOT NULL, material TEXT NOT NULL, payload TEXT NOT NULL, "
+    "changes TEXT NOT NULL, PRIMARY KEY (plan_id, revision))"
 )
 
 
@@ -74,10 +79,12 @@ class ProjectBrain:
                 for statement in _SCHEMA:
                     db.execute(statement)
                 db.execute("INSERT INTO project VALUES (1, ?)", (repository,))
-                db.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
-            elif version != _SCHEMA_VERSION:
+            elif version not in (1, _SCHEMA_VERSION):
                 raise ValueError(f"Unsupported Project Brain schema version: {version}")
             self._check_identity(db)
+            if version < 2:
+                db.execute(_PLAN_SCHEMA)
+                db.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
     def _connect(self) -> sqlite3.Connection:
         db = sqlite3.connect(self.path)
