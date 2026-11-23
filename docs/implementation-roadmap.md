@@ -597,7 +597,7 @@ Discovery covers committed Git content and recognized file types and manifests. 
 # 8. M3 — Immutable Context Packages
 
 **Priority:** High  
-**Status:** In progress
+**Status:** Verified
 
 **Depends on:** M2  
 **Primary ADR:** ADR-009
@@ -683,6 +683,20 @@ M3 is verified when:
 - Stale and provisional knowledge is identified.
 - Expanded packages preserve original identities and evidence.
 - Revision mismatches are rejected or explicitly reconciled.
+
+### 8.6 Verification record
+
+| Work Unit | Commit | Observed result |
+|---|---|---|
+| Package identity and integrity | `6c7ee93` | Verified deterministic SHA-256 identities, immutable serialization, and rejection of duplicate keys or tampered content. |
+| Scoped assembly | `93ac932` | Validated generated packages against the v0.1 schema and verified scope, byte limits, original provenance, and explicit reconciliation. |
+| Package expansion | `2859655` | Verified that the child retains the parent's assertions and evidence, links to its digest, and rejects incompatible bindings or conflicting evidence. |
+
+`python -m pytest -q` reported **175 passed, 3 skipped**. Ruff lint and formatting passed. On 2026-11-23, a smoke check against the real repository assembled a parent with six assertions and expanded it to ten. Both artifacts passed Draft 2020-12 validation and reloaded with their original identities. The check rejected a modified evidence reference and observed unchanged Git and workspace state.
+
+The [hosted CI run](https://github.com/MederickBernier/Adaptive-Engineering-Workbench/actions/runs/45162250614) completed successfully for the Linux and Windows matrix on `2859655`.
+
+The codec verifies integrity independently of structural schema validation and trusted issuance. Expansion is restricted to one snapshot and workspace binding. A changed snapshot or revision requires separate assembly and applicable reconciliation. The prior M1 authenticated GitHub CLI verification remains open. M4 awaits a new assignment.
 
 ---
 
