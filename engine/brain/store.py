@@ -17,6 +17,7 @@ from engine.brain.model import (
     Revision,
     Snapshot,
     Verification,
+    validate_commit,
     validate_path,
 )
 
@@ -163,4 +164,18 @@ class ProjectBrain:
                 tuple(json.loads(regions)),
                 tuple(_decode_assertion(payload) for (payload,) in assertions),
                 observed_at,
+            )
+
+    def snapshot_ids(self, commit: str) -> tuple[str, ...]:
+        """Find all published snapshots for a commit, most recently observed first."""
+        validate_commit(commit)
+        with closing(self._connect()) as db:
+            self._check_identity(db)
+            return tuple(
+                row[0]
+                for row in db.execute(
+                    "SELECT id FROM snapshots WHERE json_extract(revision, '$.commit') = ? "
+                    "ORDER BY observed_at DESC, id",
+                    (commit,),
+                )
             )

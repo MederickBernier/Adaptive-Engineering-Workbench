@@ -588,3 +588,29 @@ class GitRepository:
         except UnicodeEncodeError:
             return None
         return None if "\x00" in content else content
+
+    def changed_paths_between(
+        self, old_commit: str, new_commit: str
+    ) -> tuple[str, ...]:
+        """Compare committed trees without running diff helpers or fetching objects."""
+        if not self.has_commit(old_commit) or not self.has_commit(new_commit):
+            raise GitError("Both revisions must be available locally for comparison")
+        output = self._run(
+            [
+                "diff",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--no-renames",
+                "--no-relative",
+                "--ignore-submodules=none",
+                "--name-only",
+                "-z",
+                old_commit,
+                new_commit,
+                "--",
+            ]
+        ).stdout
+        paths = output.split("\0")
+        if paths.pop() != "" or any(not path for path in paths):
+            raise GitCommandError("Unexpected Git changed-path record")
+        return tuple(sorted(set(paths)))

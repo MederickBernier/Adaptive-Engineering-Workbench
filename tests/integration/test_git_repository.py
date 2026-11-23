@@ -23,7 +23,8 @@ from pathlib import Path
 import pytest
 
 from engine.brain.discovery import discover
-from engine.brain.model import Depth
+from engine.brain.model import Assertion, Depth, Evidence, Revision
+from engine.brain.retrieval import retrieve
 from engine.brain.store import ProjectBrain
 from engine.git.repository import (
     GitCommandError,
@@ -126,6 +127,65 @@ def test_project_brain_discovers_pinned_regions(
     )
     assert any(item.depth == Depth.STRUCTURAL for item in backend.assertions)
     assert brain.load(broad.id) == broad
+
+
+def test_brain_retrieval_invalidates_changed_regions_and_dependents(
+    repository: Path, tmp_path: Path
+) -> None:
+    for region in ("api", "storage", "ui"):
+        file = repository / region / "source.py"
+        file.parent.mkdir()
+        file.write_text(f"# {region}", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Establish component evidence")
+    adapter = GitRepository(repository)
+    old_commit = git(repository, "rev-parse", "HEAD")
+    revision = Revision(adapter.root.as_uri(), old_commit)
+    path = tmp_path / "brain.sqlite3"
+    brain = ProjectBrain(path, revision.repository)
+
+    def assertion(region: str, relation: str, target: str, depth: Depth) -> Assertion:
+        return Assertion(
+            revision,
+            region,
+            relation,
+            target,
+            (
+                Evidence(
+                    f"git:{old_commit}:{region}/source.py",
+                    "Inspected source",
+                    f"{region}/source.py",
+                ),
+            ),
+            region,
+            depth,
+        )
+
+    dependency = assertion("api", "depends_on", "storage", Depth.STRUCTURAL)
+    api = assertion("api", "handles", "requests", Depth.BEHAVIORAL)
+    storage = assertion("storage", "maintains", "data", Depth.SEMANTIC)
+    ui = assertion("ui", "renders", "pages", Depth.DISCOVERY)
+    snapshot = brain.publish(
+        revision, ("api", "storage", "ui"), (dependency, api, storage, ui)
+    )
+    git(repository, "mv", "storage/source.py", "storage/renamed.py")
+    git(repository, "commit", "-m", "Rename storage evidence")
+    new_commit = git(repository, "rev-parse", "HEAD")
+
+    reopened = ProjectBrain(path, revision.repository)
+    assert reopened.snapshot_ids(old_commit) == (snapshot.id,)
+    view = retrieve(adapter, reopened, snapshot.id, target_commit=new_commit)
+    assert view.revision.commit == new_commit
+    assert view.changed_paths == ("storage/renamed.py", "storage/source.py")
+    assert view.affected_regions == ("api", "storage")
+    assert view.current == (ui,)
+    assert set(view.stale) == {dependency, api, storage}
+    assert storage.depth is Depth.SEMANTIC
+    assert retrieve(adapter, reopened, snapshot.id).stale == ()
+    assert retrieve(
+        adapter, reopened, snapshot.id, target_commit=new_commit, region="ui"
+    ).current == (ui,)
+    assert reopened.load(snapshot.id) == snapshot
 
 
 def test_repository_discovery(
