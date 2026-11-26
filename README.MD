@@ -116,7 +116,7 @@ Keep project-specific Markdown notes under `.aew/knowledge/`, alongside `.aew/co
 
 After a local commit, fast-forward pull, or merge, run `aew-task brain reconcile --snapshot <base-snapshot-id>` from the checkout. Use the previous snapshot ID from bootstrap or task context and the same `--brain` override if you used one. The command compares the base snapshot's commit with committed `HEAD`, refreshes code observations in affected regions, and indexes the current project notes. It publishes a new snapshot while preserving the base for review.
 
-The report identifies refreshed assertions in the new snapshot and removed or review-needed assertions in the base. Review-needed claims are excluded from the new snapshot. To use the reconciled knowledge for intake, pass the returned `snapshot_id` in the task request.
+The report identifies refreshed assertions in the new snapshot and removed or review-needed assertions in the base. Review-needed claims are excluded from the new snapshot. Task intake honors an explicit `snapshot_id` first. Otherwise, it selects the latest recorded reconciliation for the exact commit that covers the whole requested region, then tries approved bootstrap knowledge and scoped discovery. For snapshots reconciled before this feature, rerun reconciliation with the original base to register the result for automatic intake.
 
 ## Workflow
 
@@ -503,7 +503,7 @@ aew-task bootstrap publish --session <id> --review-digest <digest>
 
 The `aew-task` skill uses the draft to guide the interview. Use the version returned by the last command when recording each response, or run `show` to resume. Use `--disposition skipped` or `--disposition deferred` in place of `--answer` when appropriate. Maintainer names are supplied by the operator and recorded as attribution. Once all questions have a disposition, review the draft and approve its digest before publication. Deferred questions are preserved as uncertainties in the local Project Brain.
 
-Routine intake reuses an approved bootstrap snapshot for the same commit. An explicitly selected snapshot takes precedence, and intake falls back to scoped discovery when no approved bootstrap snapshot exists for the commit.
+Routine intake can reuse an approved bootstrap snapshot for the same commit when no explicit or eligible reconciled snapshot is selected. Otherwise it falls back to scoped discovery if no approved bootstrap snapshot exists for the commit.
 
 ## Local pilot
 

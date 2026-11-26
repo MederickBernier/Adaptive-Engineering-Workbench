@@ -350,6 +350,51 @@ def test_brain_reconcile_refreshes_knowledge_after_pull(
     assert json.loads(capsys.readouterr().out) == report
     assert git(repository, "status", "--porcelain") == status
 
+    def intake_snapshot(task_id, region, explicit=None):
+        result = plan_task(
+            adapter,
+            reopened,
+            Intake(
+                Task(
+                    id=task_id,
+                    repository=adapter.root.as_uri(),
+                    objective="Review the updated source",
+                    acceptance=("Identify current implementation",),
+                ),
+                assess(
+                    risk=Level.LOW,
+                    uncertainty=Level.LOW,
+                    rationale="Bounded code review",
+                ),
+                approach="Review the source and project notes",
+                task_type="fix",
+                region=region,
+                scope=("src/**",),
+                verification=(),
+                work_units=(
+                    WorkUnit(
+                        "review-source",
+                        "Review the updated source",
+                        ("src/**",),
+                        ("Identify current implementation",),
+                        ("Inspect committed source",),
+                    ),
+                ),
+                snapshot_id=explicit,
+            ),
+        )
+        return result.context.to_dict()["identity"]["revision"]["snapshot_id"]
+
+    assert intake_snapshot("reconciled-intake", "src") == snapshot.id
+    explicit = discover(adapter, reopened, commit=head, regions=("src",))
+    assert explicit.id != snapshot.id
+    assert intake_snapshot("explicit-intake", "src", explicit.id) == explicit.id
+    fallback = discover(adapter, reopened, commit=head, regions=(".",))
+    assert intake_snapshot("uncovered-intake", ".") == fallback.id
+    git(repository, "commit", "--allow-empty", "-m", "Advance HEAD")
+    next_snapshot = discover(adapter, reopened, regions=("src",))
+    assert intake_snapshot("next-commit-intake", "src") == next_snapshot.id
+
 
 def test_vault_cli_retrieves_active_shared_notes_at_pinned_commit(repository, capsys):
     vault_path = repository / "vault"
