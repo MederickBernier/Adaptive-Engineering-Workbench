@@ -378,11 +378,60 @@ Changes to an approved architectural invariant require an explicit amendment and
 
 Documentation should explain the system's contracts and behavior without duplicating implementation details unnecessarily.
 
+## Installation and usage
+
+### Install the AEW engine
+
+Install Git and Python 3.13, then clone AEW and open the clone in a terminal.
+
+```sh
+git clone https://github.com/MederickBernier/Adaptive-Engineering-Workbench.git
+cd Adaptive-Engineering-Workbench
+```
+
+Windows PowerShell:
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e .
+.\.venv\Scripts\aew-task.exe config show
+```
+
+macOS or Linux:
+
+```sh
+python3.13 -m venv .venv
+.venv/bin/python -m pip install -e .
+.venv/bin/aew-task config show
+```
+
+The final command prints the checkout, effective settings, and paths without creating Brain state. To use AEW on another repository, pass `--repository <target-checkout>`. Keep the AEW installation in its own checkout. In desktop coding sessions, give the agent the absolute path to the virtual environment's `aew-task` executable if its shell cannot find the command. Use the target repository as the working directory or pass `--repository` explicitly.
+
+### Claude Code CLI and Claude Desktop
+
+1. Install and sign in to [Claude Code](https://code.claude.com/docs/en/quickstart) for terminal use or [Claude Desktop](https://code.claude.com/docs/en/desktop) for desktop use.
+2. Copy the whole [`aew-task` skill folder](aew/skills/aew-task/) into the target checkout's `.claude/skills/` directory. Confirm the resulting file is `.claude/skills/aew-task/SKILL.md`. For a personal install across repositories, use `~/.claude/skills/aew-task/`. [Claude Code skill locations](https://code.claude.com/docs/en/skills)
+3. In the CLI, run `claude` from the target checkout. In Claude Desktop, open **Code**, choose a local environment, and select the target checkout. Start a new session and invoke `/aew-task` with a task description, such as `/aew-task Investigate why the import rejects empty input. Return a plan for review.`
+
+The regular **Chat** tab can also use the skill for advisory work. ZIP the `aew-task/` folder so the archive contains `aew-task/SKILL.md`, then upload it under **Customize → Skills** if your account allows uploads. For access to the local AEW engine and checkout, use a local **Code** session. [Claude custom skills](https://support.claude.com/en/articles/12512180-use-skills-in-claude)
+
+### Codex CLI and ChatGPT desktop
+
+1. Follow the [OpenAI quickstart](https://developers.openai.com/codex/quickstart) to install and sign in to the Codex CLI or the ChatGPT desktop app.
+2. Copy the whole [`aew-task` skill folder](aew/skills/aew-task/) into the target checkout's `.agents/skills/` directory. Confirm the resulting file is `.agents/skills/aew-task/SKILL.md`. For a personal install across repositories, use `~/.agents/skills/aew-task/`. [Codex skill locations](https://developers.openai.com/codex/skills)
+3. In the CLI, run `codex` from the target checkout and select `aew-task` with `/skills` or a `$` mention. In the ChatGPT desktop app, open the target checkout in a local Codex project and start a new chat. Select the skill if it appears, or ask Codex to read `.agents/skills/aew-task/SKILL.md` before planning. Ask for a bounded task, such as “Use aew-task to investigate why the import rejects empty input. Return a plan for review.”
+
+For regular ChatGPT chat, eligible workspaces can install the skill through **Plugins → Skills → Create → Upload from your computer**. Upload the skill folder as an archive, then select it with an `@` mention when available. Use this for advisory work with material you provide, such as a task description or an AEW JSON report. Run commands that require your local checkout or Brain from a terminal or local Codex project. [Skills in ChatGPT](https://help.openai.com/en/articles/20001066-skills-in-chatgpt)
+
+### First use
+
+- Run `aew-task config show --repository <target-checkout>` to verify which checkout, Brain, and vault AEW will use.
+- For first-time knowledge setup, ask the coding agent to start an AEW bootstrap interview, or run `aew-task bootstrap --repository <target-checkout>` for a read-only scan. Follow the [bootstrap session commands](#first-time-project-brain-setup) to review and publish a snapshot.
+- Ask the skill to investigate a concrete task and return a plan. For direct terminal use, see [Task workflow](#task-workflow) for the JSON request format. Implementation and delivery require their own authorization.
+
 ## Contributing
 
-AEW is currently in early development.
-
-Use Python 3.13 and Git to work on the prototype. From the repository root, create a virtual environment and install the engine and development tools.
+AEW is currently in early development. To work on AEW itself, install the development tools from the repository root.
 
 ```powershell
 python -m venv .venv
