@@ -1150,6 +1150,31 @@ def test_config_show_is_read_only_and_reports_setting_sources(
     assert adapter.snapshot() == before
 
 
+def test_config_show_reports_resolved_vault_sources(
+    repository, tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setattr(Path, "home", lambda: tmp_path / "profile")
+    user_config = Path.home() / ".config" / "aew" / "config.json"
+    user_config.parent.mkdir(parents=True)
+    project_config = repository / ".aew" / "config.json"
+    project_config.parent.mkdir()
+    command = ["config", "show", "--repository", str(repository)]
+
+    def check(path, source, *options):
+        assert main([*command, *options]) == 0
+        output = json.loads(capsys.readouterr().out)
+        assert output["vault"] == {"path": str(path.resolve()), "source": source}
+        assert not path.exists()
+
+    check(repository / "knowledge-vault", "built_in")
+    user_config.write_text('{"vault":{"path":"user-notes"}}', encoding="utf-8")
+    check(repository / "user-notes", "user")
+    project_config.write_text('{"vault":{"path":"project-notes"}}', encoding="utf-8")
+    check(repository / "project-notes", "project")
+    override = tmp_path / "explicit-notes"
+    check(override, "command_line", "--vault", str(override))
+
+
 def test_bootstrap_scan_reports_committed_evidence_and_unsolved_questions(
     repository, tmp_path, monkeypatch
 ):

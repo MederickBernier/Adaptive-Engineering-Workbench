@@ -77,11 +77,15 @@ def _config_show(argv: list[str]) -> int:
     )
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--brain", type=Path)
+    parser.add_argument("--vault", type=Path)
     args = parser.parse_args(argv)
     try:
         repository = GitRepository(args.repository)
         config = load_config(repository.root)
         brain_path = _brain_path(repository, args.brain)
+        vault_path, vault_source = resolve_vault_path(
+            repository.root, config, args.vault
+        )
         settings = describe_settings(config)
         branch = config.integration_branch
         source = settings["git.integration_branch"]["source"]
@@ -99,13 +103,14 @@ def _config_show(argv: list[str]) -> int:
                 "path": str(brain_path),
                 "source": "command_line" if args.brain else "user_data_default",
             },
+            "vault": {"path": str(vault_path), "source": vault_source},
             "integration_branch": {
                 "value": branch,
                 "source": source,
                 "remote_verified": False,
             },
         }
-    except (ValueError, GitError, OSError) as error:
+    except (ValueError, GitError, OSError, RuntimeError) as error:
         print(
             json.dumps({"error": str(error), "state": "configuration_failed"}),
             file=sys.stderr,
@@ -208,7 +213,7 @@ def _vault(argv: list[str]) -> int:
             repository = GitRepository(args.repository)
             path, _ = resolve_vault_path(repository.root, load_config(repository.root))
         vault = load_vault(path.expanduser(), args.commit)
-    except (GitError, OSError, ValueError) as error:
+    except (GitError, OSError, ValueError, RuntimeError) as error:
         message = (
             str(error)
             if args.action == "validate"

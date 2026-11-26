@@ -452,7 +452,7 @@ From an attached checkout, send task intake JSON to the installed `aew-task` com
 Get-Content task.json -Raw | aew-task
 ```
 
-Run `aew-task config show` for a read-only JSON report of config files, recognized settings and their sources, the Brain path, and the integration branch hint. Use `--repository` or `--brain` with this command to inspect the same paths you would use for intake.
+Run `aew-task config show` for a read-only JSON report of config files, recognized settings and their sources, the Brain and vault paths, and the integration branch hint. Use `--repository` to select the checkout, or `--brain` and `--vault` to inspect explicit path overrides. The report shows the resolved vault path and its source even when the directory does not yet exist.
 
 Example `task.json` for Quick planning:
 
