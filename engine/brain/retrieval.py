@@ -41,10 +41,14 @@ def _affected(
         paths = tuple(
             evidence.path for evidence in item.evidence if evidence.path is not None
         )
-        if any(_touches(change, path) for change in changes for path in paths) or (
-            item.kind == KnowledgeKind.DERIVED
-            and item.region in affected_regions
-            and (item.depth != Depth.DISCOVERY or not paths)
+        if (
+            (changes and item.relation.startswith("maintainer_"))
+            or any(_touches(change, path) for change in changes for path in paths)
+            or (
+                item.kind == KnowledgeKind.DERIVED
+                and item.region in affected_regions
+                and (item.depth != Depth.DISCOVERY or not paths)
+            )
         ):
             invalid.add(item)
 
@@ -99,6 +103,11 @@ def retrieve(
         item
         for item in snapshot.assertions
         if _within(item.region, region)
+        or (
+            item.region == "."
+            and item.kind == KnowledgeKind.DURABLE
+            and item.relation.startswith("maintainer_")
+        )
         or any(
             evidence.path is not None and _touches(evidence.path, region)
             for evidence in item.evidence

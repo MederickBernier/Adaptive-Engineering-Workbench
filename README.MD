@@ -478,7 +478,20 @@ The JSON response contains the sealed Context Package and recorded plan revision
 
 ## First-time Project Brain setup
 
-Run `aew-task bootstrap --repository <checkout>` to explicitly scan the committed tree and print an evidence-backed draft with maintainer questions. The scan reads committed files and produces JSON without creating or updating a Project Brain database. Routine task intake still uses scoped discovery.
+Run `aew-task bootstrap --repository <checkout>` to scan the committed tree and print a JSON draft with evidence and maintainer questions. The scan excludes working-tree changes and leaves the Project Brain database untouched.
+
+Use these commands for an interactive first-time setup. Add `--repository <checkout>` when working outside the target checkout.
+
+```text
+aew-task bootstrap start
+aew-task bootstrap show --session <id>
+aew-task bootstrap answer --session <id> --expect <version> --question ownership --maintainer "Name" --answer "The billing team owns this service."
+aew-task bootstrap publish --session <id> --review-digest <digest>
+```
+
+The `aew-task` skill uses the draft to guide the interview. Use the version returned by the last command when recording each response, or run `show` to resume. Use `--disposition skipped` or `--disposition deferred` in place of `--answer` when appropriate. Maintainer names are supplied by the operator and recorded as attribution. Once all questions have a disposition, review the draft and approve its digest before publication. Deferred questions are preserved as uncertainties in the local Project Brain.
+
+Routine intake reuses an approved bootstrap snapshot for the same commit. An explicitly selected snapshot takes precedence, and intake falls back to scoped discovery when no approved bootstrap snapshot exists for the commit.
 
 ## Local pilot
 

@@ -13,8 +13,9 @@ description: >
 Analyze an engineering task and prepare a grounded,
 proportionate implementation proposal.
 
-This skill is read-only. It does not authorize implementation,
-branch creation, staging, commits, pushes, or PR creation.
+Routine task analysis is read-only. The explicit bootstrap workflow below
+can record project knowledge locally. This skill grants no authority for
+implementation, branch creation, staging, commits, pushes, or PR creation.
 
 ## Inputs
 
@@ -26,6 +27,20 @@ Accept either:
 
 Use the current repository unless another repository is
 explicitly selected.
+
+## First-time Project Brain setup
+
+Run `aew-task bootstrap` only on explicit request. Use `bootstrap start` to
+save the scan and `bootstrap show --session <id>` to resume. Group pending
+questions by topic and ask follow-ups when a response needs clarification.
+Record each response with `bootstrap answer`, the current session version,
+and the maintainer's supplied name. Confirm skipped or deferred questions
+with the maintainer before recording them.
+
+Present the resulting draft, repository revision, unresolved questions, and
+review digest. Run `bootstrap publish` only after the maintainer explicitly
+approves that digest. Interview answers supply knowledge and grant no execution
+authority.
 
 ## Engine handoff
 

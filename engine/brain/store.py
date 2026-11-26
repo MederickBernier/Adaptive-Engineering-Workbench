@@ -21,7 +21,7 @@ from engine.brain.model import (
     validate_path,
 )
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 _SCHEMA = (
     "CREATE TABLE project (id INTEGER PRIMARY KEY CHECK (id = 1), repository TEXT NOT NULL)",
     (
@@ -44,6 +44,11 @@ _DISCOVERY_SCHEMA = (
     "CREATE TABLE discovery_cache (commit_id TEXT NOT NULL, regions TEXT NOT NULL, "
     "detector_version INTEGER NOT NULL, snapshot_id TEXT NOT NULL REFERENCES snapshots(id), "
     "PRIMARY KEY (commit_id, regions, detector_version))"
+)
+_BOOTSTRAP_SCHEMA = (
+    "CREATE TABLE bootstrap_sessions (id TEXT PRIMARY KEY, version INTEGER NOT NULL, "
+    "commit_id TEXT NOT NULL, payload TEXT NOT NULL, "
+    "snapshot_id TEXT REFERENCES snapshots(id), published_at TEXT)"
 )
 
 
@@ -88,13 +93,15 @@ class ProjectBrain:
                 for statement in _SCHEMA:
                     db.execute(statement)
                 db.execute("INSERT INTO project VALUES (1, ?)", (repository,))
-            elif version not in (1, 2, _SCHEMA_VERSION):
+            elif version not in (1, 2, 3, _SCHEMA_VERSION):
                 raise ValueError(f"Unsupported Project Brain schema version: {version}")
             self._check_identity(db)
             if version < 2:
                 db.execute(_PLAN_SCHEMA)
             if version < 3:
                 db.execute(_DISCOVERY_SCHEMA)
+            if version < 4:
+                db.execute(_BOOTSTRAP_SCHEMA)
                 db.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
     def _connect(self) -> sqlite3.Connection:
@@ -120,6 +127,18 @@ class ProjectBrain:
         assertions: Iterable[Assertion],
     ) -> Snapshot:
         """Publish a coherent snapshot and its explicit membership atomically."""
+        with self._write() as db:
+            snapshot_id = self._publish(db, revision, regions, assertions)
+        return self.load(snapshot_id)
+
+    def _publish(
+        self,
+        db: sqlite3.Connection,
+        revision: Revision,
+        regions: Iterable[str],
+        assertions: Iterable[Assertion],
+    ) -> str:
+        self._check_identity(db)
         if revision.repository != self.repository:
             raise ValueError("Snapshot repository does not match the Project Brain")
         coverage = tuple(sorted(set(regions)))
@@ -140,30 +159,39 @@ class ProjectBrain:
         coverage_payload = _json(coverage)
         members = sorted(records)
         snapshot_id = _identity(_json((revision_payload, coverage_payload, members)))
-        with self._write() as db:
+        exists = db.execute(
+            "SELECT 1 FROM snapshots WHERE id = ?", (snapshot_id,)
+        ).fetchone()
+        if exists is None:
+            db.execute(
+                "INSERT INTO snapshots VALUES (?, ?, ?, ?)",
+                (
+                    snapshot_id,
+                    revision_payload,
+                    coverage_payload,
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+            db.executemany(
+                "INSERT INTO assertions VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING",
+                ((key, *records[key]) for key in members),
+            )
+            db.executemany(
+                "INSERT INTO membership VALUES (?, ?)",
+                ((snapshot_id, key) for key in members),
+            )
+        return snapshot_id
+
+    def bootstrap_snapshot_id(self, commit: str) -> str | None:
+        """Find the most recent locally approved bootstrap for this exact commit."""
+        with closing(self._connect()) as db:
             self._check_identity(db)
-            exists = db.execute(
-                "SELECT 1 FROM snapshots WHERE id = ?", (snapshot_id,)
+            row = db.execute(
+                "SELECT snapshot_id FROM bootstrap_sessions WHERE commit_id = ? AND snapshot_id IS NOT NULL "
+                "ORDER BY published_at DESC, id LIMIT 1",
+                (commit,),
             ).fetchone()
-            if exists is None:
-                db.execute(
-                    "INSERT INTO snapshots VALUES (?, ?, ?, ?)",
-                    (
-                        snapshot_id,
-                        revision_payload,
-                        coverage_payload,
-                        datetime.now(UTC).isoformat(),
-                    ),
-                )
-                db.executemany(
-                    "INSERT INTO assertions VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING",
-                    ((key, *records[key]) for key in members),
-                )
-                db.executemany(
-                    "INSERT INTO membership VALUES (?, ?)",
-                    ((snapshot_id, key) for key in members),
-                )
-        return self.load(snapshot_id)
+        return row[0] if row else None
 
     def load(self, snapshot_id: str) -> Snapshot:
         """Reconstruct a published snapshot without consulting the worktree."""

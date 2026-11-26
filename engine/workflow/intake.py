@@ -66,7 +66,7 @@ def plan_task(
     )
     if not report.branch or not report.head_commit:
         raise PlanningError("Task intake requires an attached branch with a commit")
-    snapshot_id = request.snapshot_id
+    snapshot_id = request.snapshot_id or brain.bootstrap_snapshot_id(report.head_commit)
     if snapshot_id is None:
         snapshot_id = discover(
             repository,

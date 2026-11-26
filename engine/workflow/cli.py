@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from engine.brain.bootstrap import scan_bootstrap
+from engine.brain.bootstrap import BootstrapInterview, scan_bootstrap
 from engine.brain.store import ProjectBrain
 from engine.config import default_brain_path, describe_settings, load_config
 from engine.git.repository import GitError, GitRepository
@@ -182,20 +182,70 @@ def _bootstrap(argv: list[str]) -> int:
         description="Scan the committed repository and produce a draft review.",
     )
     parser.add_argument("--repository", type=Path, default=Path.cwd())
+    parser.add_argument(
+        "action",
+        nargs="?",
+        choices=("scan", "start", "show", "answer", "publish"),
+        default="scan",
+    )
+    parser.add_argument("--brain", type=Path)
+    parser.add_argument("--session")
+    parser.add_argument("--question")
+    parser.add_argument("--expect", type=int)
+    parser.add_argument("--maintainer")
+    parser.add_argument(
+        "--disposition", choices=("answered", "skipped", "deferred"), default="answered"
+    )
+    parser.add_argument("--answer")
+    parser.add_argument("--review-digest")
     args = parser.parse_args(argv)
     try:
-        print(
-            json.dumps(
-                scan_bootstrap(GitRepository(args.repository)), sort_keys=True, indent=2
-            )
-        )
-    except (ValueError, GitError, OSError) as error:
+        repository = GitRepository(args.repository)
+        if args.action == "scan":
+            result = scan_bootstrap(repository)
+        else:
+            result = _bootstrap_interview(repository, args)
+        print(json.dumps(result, sort_keys=True, indent=2))
+    except (ValueError, GitError, OSError, sqlite3.Error) as error:
         print(
             json.dumps({"error": str(error), "state": "bootstrap_failed"}),
             file=sys.stderr,
         )
         return 1
     return 0
+
+
+def _bootstrap_interview(
+    repository: GitRepository, args: argparse.Namespace
+) -> dict[str, Any]:
+    path = _brain_path(repository, args.brain)
+    if args.action == "start" and args.brain is None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    if args.action != "start" and (not args.session or not path.is_file()):
+        raise ValueError("An existing database and --session are required")
+    interview = BootstrapInterview(
+        repository, ProjectBrain(path, repository.root.as_uri())
+    )
+    if args.action == "start":
+        return interview.start()
+    if args.action == "show":
+        return interview.show(args.session)
+    if args.action == "answer":
+        if not args.question or args.expect is None or not args.maintainer:
+            raise ValueError("Answer requires --question, --expect, and --maintainer")
+        return interview.answer(
+            args.session,
+            expected_version=args.expect,
+            question_id=args.question,
+            maintainer=args.maintainer,
+            disposition=args.disposition,
+            answer=args.answer,
+        )
+    if not args.review_digest:
+        raise ValueError(
+            "Publish requires the --review-digest from the reviewed interview"
+        )
+    return interview.publish(args.session, review_digest=args.review_digest)
 
 
 if __name__ == "__main__":

@@ -1013,6 +1013,132 @@ def test_bootstrap_scan_reports_committed_evidence_and_unsolved_questions(
     assert GitRepository(repository).snapshot() == before
 
 
+def test_bootstrap_resumes_publishes_and_reuses_reviewed_knowledge(
+    repository, tmp_path
+):
+    (repository / "src").mkdir()
+    (repository / "src/example.py").write_bytes(b"value = 1\n")
+    git(repository, "add", "--", "src")
+    git(repository, "commit", "-m", "Record committed source")
+    adapter = GitRepository(repository)
+    before = adapter.snapshot()
+    database = tmp_path / "bootstrap.sqlite3"
+    command = [sys.executable, "-m", "engine.workflow.cli"]
+    options = ["--repository", str(repository), "--brain", str(database)]
+    root = Path(__file__).resolve().parents[2]
+
+    def invoke(*arguments, data=None, success=True):
+        result = subprocess.run(
+            [*command, *arguments, *options],
+            cwd=root,
+            check=False,
+            input=json.dumps(data) if data else "",
+            text=True,
+            capture_output=True,
+            timeout=25,
+        )
+        assert (result.returncode == 0) == success, result.stderr
+        return json.loads(result.stdout if success else result.stderr)
+
+    first = invoke("bootstrap", "start")
+    session = ["--session", first["session_id"]]
+    assert invoke("bootstrap", "show", *session) == first
+    brain = ProjectBrain(database, adapter.root.as_uri())
+    assert brain.snapshot_ids(before.head_commit) == ()
+    assert invoke(
+        "bootstrap",
+        "publish",
+        *session,
+        "--review-digest",
+        first["review_digest"],
+        success=False,
+    )
+    reviewed = first
+    for question in first["pending_questions"]:
+        choice = ["--disposition", "deferred"]
+        if question == "ownership":
+            choice = ["--answer", "The billing team owns the example service."]
+        reviewed = invoke(
+            "bootstrap",
+            "answer",
+            *session,
+            "--question",
+            question,
+            "--expect",
+            str(reviewed["version"]),
+            "--maintainer",
+            "Pilot Maintainer",
+            *choice,
+        )
+    assert reviewed["state"] == "ready_for_review"
+    assert (
+        "changed since review"
+        in invoke(
+            "bootstrap",
+            "publish",
+            *session,
+            "--review-digest",
+            first["review_digest"],
+            success=False,
+        )["error"]
+    )
+    published = invoke(
+        "bootstrap", "publish", *session, "--review-digest", reviewed["review_digest"]
+    )
+    assert published["state"] == "published"
+    assert (
+        invoke(
+            "bootstrap",
+            "publish",
+            *session,
+            "--review-digest",
+            reviewed["review_digest"],
+        )
+        == published
+    )
+    snapshot = brain.load(published["snapshot_id"])
+    assert any(
+        "Pilot Maintainer" in item.evidence[0].detail
+        for item in snapshot.assertions
+        if item.relation.startswith("maintainer_")
+    )
+
+    planned = invoke(
+        data={
+            "task": {
+                "id": "bootstrap-reuse",
+                "objective": "Inspect example",
+                "acceptance": ["Identify owner"],
+            },
+            "assessment": {
+                "risk": "low",
+                "uncertainty": "low",
+                "rationale": "Bounded example",
+            },
+            "approach": "Inspect the approved source",
+            "task_type": "fix",
+            "region": "src",
+            "scope": ["src/**"],
+            "verification": ["Inspect example"],
+            "work_units": [
+                {
+                    "id": "one",
+                    "objective": "Inspect",
+                    "scope": ["src/**"],
+                    "acceptance": ["Identify owner"],
+                    "verification": ["Inspect example"],
+                }
+            ],
+        }
+    )
+    context = planned["context"]
+    assert context["identity"]["revision"]["snapshot_id"] == snapshot.id
+    assert any(
+        "billing team" in item["claim"] for item in context["knowledge"]["assertions"]
+    )
+    assert adapter.snapshot() == before
+
+
 def test_repository_discovery(
     repository: Path,
 ) -> None:
