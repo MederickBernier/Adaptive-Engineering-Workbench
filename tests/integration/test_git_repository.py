@@ -33,6 +33,7 @@ from engine.brain.discovery import discover
 from engine.brain.model import Assertion, Depth, Evidence, Revision, Verification
 from engine.brain.retrieval import retrieve
 from engine.brain.store import ProjectBrain, assertion_id
+from engine.brain.vault import load_vault
 from engine.config import load_config
 from engine.context.assembly import assemble_context
 from engine.context.package import ContextPackage, ContextPackageError
@@ -85,6 +86,83 @@ def git(
     )
 
     return result.stdout.strip()
+
+
+def _vault_note(identifier: str) -> str:
+    return f"""---
+id: kb:engineering:{identifier}
+title: Example
+status: active
+kind: practice
+visibility: shared
+created: 2026-11-22
+updated: 2026-11-23
+sources:
+  - type: reference
+    value: Engineering handbook
+---
+Example note.
+"""
+
+
+def test_vault_validation_uses_committed_blobs_and_stable_ids(repository):
+    vault_path = repository / "vault"
+    vault_path.mkdir()
+    one = vault_path / "one.md"
+    two = vault_path / "two.md"
+    one.write_text(
+        _vault_note("one").replace(
+            "sources:", "related: [kb:engineering:two]\nsources:"
+        ),
+        encoding="utf-8",
+    )
+    two.write_text(_vault_note("two"), encoding="utf-8")
+    git(repository, "add", "vault")
+    git(repository, "commit", "-m", "Create vault")
+    first = load_vault(vault_path)
+    one.write_text("Uncommitted changes", encoding="utf-8")
+    assert load_vault(vault_path) == first
+    one.write_text(_vault_note("one"), encoding="utf-8")
+    git(repository, "mv", "vault/two.md", "vault/renamed.md")
+    git(repository, "commit", "-m", "Rename note")
+    assert {item.id for item in load_vault(vault_path).documents} == {
+        item.id for item in first.documents
+    }
+    assert load_vault(vault_path, first.commit) == first
+
+
+@pytest.mark.parametrize(
+    ("note", "error"),
+    [
+        (_vault_note("one"), "Duplicate knowledge ID"),
+        (_vault_note("two").replace("visibility: shared\n", ""), "Missing metadata"),
+        (
+            _vault_note("two").replace("status: active", "status: pending"),
+            "status must",
+        ),
+        (
+            _vault_note("two").replace(
+                "title: Example", "title: Example\ntitle: Duplicate"
+            ),
+            "duplicate keys",
+        ),
+        (
+            _vault_note("two").replace(
+                "sources:", "related: [kb:engineering:missing]\nsources:"
+            ),
+            "unresolved related reference",
+        ),
+    ],
+)
+def test_vault_rejects_invalid_metadata(repository, note, error):
+    vault_path = repository / "vault"
+    vault_path.mkdir()
+    (vault_path / "one.md").write_text(_vault_note("one"), encoding="utf-8")
+    (vault_path / "two.md").write_text(note, encoding="utf-8")
+    git(repository, "add", "vault")
+    git(repository, "commit", "-m", "Create invalid vault")
+    with pytest.raises(ValueError, match=error):
+        load_vault(vault_path)
 
 
 @pytest.fixture

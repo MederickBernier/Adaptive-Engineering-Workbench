@@ -116,6 +116,8 @@ def main(argv: list[str] | None = None) -> int:
         return _config_show(argv[2:])
     if argv[:1] == ["bootstrap"]:
         return _bootstrap(argv[1:])
+    if argv[:1] == ["vault"]:
+        return _vault(argv[1:])
     parser = argparse.ArgumentParser(
         description="Prepare an advisory AEW task plan from JSON on stdin."
     )
@@ -173,6 +175,23 @@ def main(argv: list[str] | None = None) -> int:
             sort_keys=True,
         )
     )
+    return 0
+
+
+def _vault(argv: list[str]) -> int:
+    from engine.brain.vault import load_vault
+
+    parser = argparse.ArgumentParser(prog="aew-task vault")
+    parser.add_argument("action", choices=["validate"])
+    parser.add_argument("--vault", type=Path, required=True)
+    parser.add_argument("--commit", help="Full local commit ID (default: HEAD)")
+    args = parser.parse_args(argv)
+    try:
+        vault = load_vault(args.vault, args.commit)
+    except (GitError, OSError, ValueError) as error:
+        print(json.dumps({"error": str(error)}), file=sys.stderr)
+        return 1
+    print(json.dumps({"commit": vault.commit, "documents": len(vault.documents)}))
     return 0
 
 

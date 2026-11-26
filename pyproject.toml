@@ -7,6 +7,7 @@ name = "adaptive-engineering-workbench"
 version = "0.1.0"
 description = "Prototype engine for the Adaptive Engineering Workbench"
 requires-python = ">=3.13"
+dependencies = ["PyYAML>=6.0.2,<7"]
 
 [project.scripts]
 aew-task = "engine.workflow.cli:main"

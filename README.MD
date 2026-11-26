@@ -104,7 +104,9 @@ The vault is intended for reusable patterns, procedures, architectural principle
 
 Project-specific or confidential knowledge must respect its visibility boundaries and must not be automatically promoted into a shared knowledge base.
 
-Full vault synchronization and management are outside the initial MVP scope.
+Use `aew-task vault validate --vault <directory>` to validate Markdown in a dedicated Git vault directory. Commit the notes before validating. The command reads regular Markdown files from Git HEAD, including nested directories. Use `--commit <full-sha>` to select another local revision.
+
+Each Markdown file in that directory is a managed note. Start it with YAML frontmatter containing `id`, `title`, `status`, `kind`, `visibility`, `created`, `updated`, and `sources`. Use stable `kb:<namespace>:<identifier>` IDs and a nonempty list of sources with `type` and `value`. Relationships such as `related` and `supersedes` resolve by ID within the same revision. Full vault synchronization and promotion are outside this read-only workflow.
 
 ## Workflow
 
