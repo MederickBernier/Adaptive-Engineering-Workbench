@@ -476,6 +476,10 @@ The JSON response contains the sealed Context Package and recorded plan revision
 
 ---
 
+## First-time Project Brain setup
+
+Run `aew-task bootstrap --repository <checkout>` to explicitly scan the committed tree and print an evidence-backed draft with maintainer questions. The scan reads committed files and produces JSON without creating or updating a Project Brain database. Routine task intake still uses scoped discovery.
+
 ## Local pilot
 
 From the source checkout, run `python -m scripts.pilot_m8` to measure intake and Project Brain reuse on disposable Python, Java, Go, and mixed Python/TypeScript repositories. Add `--repository <attached-checkout>` to include a real repository read-only. The script uses temporary databases and prints timings and observations as JSON. See the [M8 verification record](docs/implementation-roadmap.md#136-verification-record) for measured results and limits.

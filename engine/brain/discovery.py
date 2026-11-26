@@ -172,6 +172,19 @@ def discover(
     if cached is not None and repository.has_commit(revision.commit):
         return cached
 
+    snapshot = brain.publish(
+        revision, coverage, inspect_revision(repository, revision, coverage)
+    )
+    brain.remember_discovery(snapshot, _DETECTOR_VERSION)
+    return snapshot
+
+
+def inspect_revision(
+    repository: GitRepository, revision: Revision, coverage: tuple[str, ...]
+) -> tuple[Assertion, ...]:
+    """Collect committed observations without publishing them."""
+    if revision.repository != repository.root.as_uri():
+        raise ValueError("Discovery revision belongs to a different checkout")
     members: list[Assertion] = []
     for region in coverage:
         facts: dict[tuple[str, str, Depth], list[Evidence]] = {}
@@ -199,6 +212,4 @@ def discover(
             )
             for (relation, target, depth), evidence in facts.items()
         )
-    snapshot = brain.publish(revision, coverage, members)
-    brain.remember_discovery(snapshot, _DETECTOR_VERSION)
-    return snapshot
+    return tuple(members)

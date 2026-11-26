@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from engine.brain.bootstrap import scan_bootstrap
 from engine.brain.store import ProjectBrain
 from engine.config import default_brain_path, describe_settings, load_config
 from engine.git.repository import GitError, GitRepository
@@ -113,6 +114,8 @@ def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:2] == ["config", "show"]:
         return _config_show(argv[2:])
+    if argv[:1] == ["bootstrap"]:
+        return _bootstrap(argv[1:])
     parser = argparse.ArgumentParser(
         description="Prepare an advisory AEW task plan from JSON on stdin."
     )
@@ -170,6 +173,28 @@ def main(argv: list[str] | None = None) -> int:
             sort_keys=True,
         )
     )
+    return 0
+
+
+def _bootstrap(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="aew-task bootstrap",
+        description="Scan the committed repository and produce a draft review.",
+    )
+    parser.add_argument("--repository", type=Path, default=Path.cwd())
+    args = parser.parse_args(argv)
+    try:
+        print(
+            json.dumps(
+                scan_bootstrap(GitRepository(args.repository)), sort_keys=True, indent=2
+            )
+        )
+    except (ValueError, GitError, OSError) as error:
+        print(
+            json.dumps({"error": str(error), "state": "bootstrap_failed"}),
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

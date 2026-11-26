@@ -977,6 +977,42 @@ def test_config_show_is_read_only_and_reports_setting_sources(
     assert adapter.snapshot() == before
 
 
+def test_bootstrap_scan_reports_committed_evidence_and_unsolved_questions(
+    repository, tmp_path, monkeypatch
+):
+    manifest = repository / "pyproject.toml"
+    manifest.write_text("[tool.pytest.ini_options]\n", encoding="utf-8")
+    git(repository, "add", "--", "pyproject.toml")
+    git(repository, "commit", "-m", "Record test configuration")
+    manifest.write_text("[tool.ruff]\n", encoding="utf-8")
+    before = GitRepository(repository).snapshot()
+    state = tmp_path / "state"
+    monkeypatch.setenv("LOCALAPPDATA", str(state))
+    monkeypatch.setenv("XDG_DATA_HOME", str(state))
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "engine.workflow.cli",
+            "bootstrap",
+            "--repository",
+            str(repository),
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        capture_output=True,
+        check=True,
+        timeout=20,
+    )
+    draft = json.loads(result.stdout)
+    assert draft["state"] == "draft"
+    assert draft["revision"]["commit"] == before.head_commit
+    assert any(item["target"] == "pytest" for item in draft["observations"])
+    assert all(item["target"] != "Ruff" for item in draft["observations"])
+    assert "tests" not in {question["id"] for question in draft["questions"]}
+    assert not state.exists()
+    assert GitRepository(repository).snapshot() == before
+
+
 def test_repository_discovery(
     repository: Path,
 ) -> None:
