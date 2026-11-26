@@ -4,6 +4,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
@@ -126,6 +127,8 @@ def main(argv: list[str] | None = None) -> int:
         return _config_show(argv[2:])
     if argv[:1] == ["bootstrap"]:
         return _bootstrap(argv[1:])
+    if argv[:1] == ["brain"]:
+        return _brain(argv[1:])
     if argv[:1] == ["vault"]:
         return _vault(argv[1:])
     parser = argparse.ArgumentParser(
@@ -188,9 +191,34 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _vault(argv: list[str]) -> int:
-    from dataclasses import asdict
+def _brain(argv: list[str]) -> int:
+    from engine.brain.reconcile import reconcile
 
+    parser = argparse.ArgumentParser(prog="aew-task brain")
+    parser.add_argument("action", choices=["reconcile"])
+    parser.add_argument("--repository", type=Path, default=Path.cwd())
+    parser.add_argument("--brain", type=Path)
+    parser.add_argument("--snapshot", required=True, help="Base snapshot ID")
+    args = parser.parse_args(argv)
+    try:
+        repository = GitRepository(args.repository)
+        path = _brain_path(repository, args.brain)
+        if not path.is_file():
+            raise ValueError("Reconciliation requires an existing Project Brain")
+        result = reconcile(
+            repository, ProjectBrain(path, repository.root.as_uri()), args.snapshot
+        )
+    except KeyError:
+        print(json.dumps({"error": "Unknown base snapshot"}), file=sys.stderr)
+        return 1
+    except (GitError, OSError, ValueError, sqlite3.Error) as error:
+        print(json.dumps({"error": str(error)}), file=sys.stderr)
+        return 1
+    print(json.dumps(asdict(result)))
+    return 0
+
+
+def _vault(argv: list[str]) -> int:
     from engine.brain.vault import load_vault
 
     parser = argparse.ArgumentParser(prog="aew-task vault")

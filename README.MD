@@ -114,6 +114,10 @@ When `--vault` is omitted, vault commands use `vault.path` from the selected che
 
 Keep project-specific Markdown notes under `.aew/knowledge/`, alongside `.aew/config.json`. Commit and review these files with the project. Discovery includes references to committed notes in scoped task context, identified by path and Git blob. The references are provisional and apply only to the project. The live Project Brain database stays outside the checkout.
 
+After a local commit, fast-forward pull, or merge, run `aew-task brain reconcile --snapshot <base-snapshot-id>` from the checkout. Use the previous snapshot ID from bootstrap or task context and the same `--brain` override if you used one. The command compares the base snapshot's commit with committed `HEAD`, refreshes code observations in affected regions, and indexes the current project notes. It publishes a new snapshot while preserving the base for review.
+
+The report identifies refreshed assertions in the new snapshot and removed or review-needed assertions in the base. Review-needed claims are excluded from the new snapshot. To use the reconciled knowledge for intake, pass the returned `snapshot_id` in the task request.
+
 ## Workflow
 
 AEW uses four adaptive task profiles:

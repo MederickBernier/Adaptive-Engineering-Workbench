@@ -22,6 +22,7 @@ from engine.git.repository import GitRepository, GitTreeFile
 
 _DETECTOR_VERSION = 2
 PROJECT_NOTE = "project_note"
+CODE_OBSERVATION = "Observed in the committed tree"
 _PROJECT_KNOWLEDGE = ".aew/knowledge"
 
 _LANGUAGES = {
@@ -223,9 +224,7 @@ def inspect_code(
     for region in coverage:
         facts: dict[tuple[str, str, Depth], list[Evidence]] = {}
         for file in repository.committed_files(revision.commit, region):
-            evidence = Evidence(
-                f"git:blob:{file.oid}", "Observed in the committed tree", file.path
-            )
+            evidence = Evidence(f"git:blob:{file.oid}", CODE_OBSERVATION, file.path)
             for fact in _file_facts(repository, file):
                 facts.setdefault(fact, []).append(evidence)
             if "/" in file.path:

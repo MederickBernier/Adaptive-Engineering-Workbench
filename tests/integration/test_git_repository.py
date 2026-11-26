@@ -30,7 +30,14 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from engine.brain.discovery import discover
-from engine.brain.model import Assertion, Depth, Evidence, Revision, Verification
+from engine.brain.model import (
+    Assertion,
+    Depth,
+    Evidence,
+    KnowledgeKind,
+    Revision,
+    Verification,
+)
 from engine.brain.retrieval import retrieve
 from engine.brain.store import ProjectBrain, assertion_id
 from engine.brain.vault import load_vault
@@ -226,6 +233,118 @@ def test_discovery_indexes_committed_project_notes_in_scoped_context(
     assert claim.evidence[0].reference == "git:blob:" + git(
         repository, "rev-parse", "HEAD:.aew/knowledge/ownership.md"
     )
+
+
+@pytest.mark.parametrize(
+    "merge", [False, True], ids=["fast-forward-pull", "merge-pull"]
+)
+def test_brain_reconcile_refreshes_knowledge_after_pull(
+    repository, tmp_path, capsys, merge
+):
+    source_dir = repository / "src"
+    source_dir.mkdir()
+    (source_dir / "old.py").write_text("print('old')\n", encoding="utf-8")
+    notes = repository / ".aew" / "knowledge"
+    notes.mkdir(parents=True)
+    note_path = ".aew/knowledge/ownership.md"
+    (repository / note_path).write_text("# Old owner\n", encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Add the baseline source and note")
+    database = tmp_path / "brain.sqlite3"
+    adapter = GitRepository(repository)
+    brain = ProjectBrain(database, adapter.root.as_uri())
+    discovered = discover(adapter, brain, regions=("src",))
+    affected_claim = Assertion(
+        discovered.revision,
+        "service",
+        "observed_behavior",
+        "old behavior",
+        (
+            Evidence(
+                "manual:investigation", "Reviewed old implementation", "src/old.py"
+            ),
+        ),
+        "src",
+        kind=KnowledgeKind.DURABLE,
+        verification=Verification.VERIFIED,
+    )
+    retained_claim = replace(
+        affected_claim,
+        relation="project_convention",
+        target="Repository conventions",
+        evidence=(
+            Evidence("manual:conventions", "Reviewed documentation", "README.md"),
+        ),
+    )
+    base = brain.publish(
+        discovered.revision,
+        discovered.regions,
+        (*discovered.assertions, affected_claim, retained_claim),
+    )
+
+    remote = tmp_path / "remote.git"
+    contributor = tmp_path / "contributor"
+    branch = git(repository, "branch", "--show-current")
+    git(repository, "clone", "--bare", ".", str(remote))
+    git(repository, "remote", "add", "origin", str(remote))
+    git(tmp_path, "clone", str(remote), str(contributor))
+    git(contributor, "config", "user.name", "AEW Contributor")
+    git(contributor, "config", "user.email", "contributor@example.invalid")
+    git(contributor, "rm", "src/old.py")
+    (contributor / "src").mkdir(exist_ok=True)
+    (contributor / "src" / "new.js").write_text("export {};\n", encoding="utf-8")
+    (contributor / note_path).write_text("# New owner\n", encoding="utf-8")
+    git(contributor, "add", ".")
+    git(contributor, "commit", "-m", "Replace source and update ownership")
+    git(contributor, "push", "origin", branch)
+    if merge:
+        (source_dir / "local.rs").write_text("fn local() {}\n", encoding="utf-8")
+        git(repository, "add", ".")
+        git(repository, "commit", "-m", "Add independent local source")
+    git(repository, "pull", "--no-rebase" if merge else "--ff-only", "origin", branch)
+    head = git(repository, "rev-parse", "HEAD")
+    assert len(git(repository, "show", "-s", "--format=%P", "HEAD").split()) == (
+        2 if merge else 1
+    )
+    status = git(repository, "status", "--porcelain")
+    command = [
+        "brain",
+        "reconcile",
+        "--repository",
+        str(repository),
+        "--brain",
+        str(database),
+        "--snapshot",
+        base.id,
+    ]
+    assert main(command) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["base_snapshot_id"] == base.id
+    assert report["commit"] == head
+    assert set(report["changed_paths"]) == {
+        note_path,
+        "src/old.py",
+        "src/new.js",
+        *(("src/local.rs",) if merge else ()),
+    }
+    assert report["needs_review"] == [assertion_id(affected_claim)]
+    snapshot = brain.load(report["snapshot_id"])
+    assert snapshot.revision.commit == head
+    assert brain.load(base.id) == base
+    assert replace(retained_claim, revision=snapshot.revision) in snapshot.assertions
+    assert all(item.relation != "observed_behavior" for item in snapshot.assertions)
+    old_python = next(item for item in base.assertions if item.target == "Python")
+    assert assertion_id(old_python) in report["removed"]
+    assert any(item.target == "JavaScript" for item in snapshot.assertions)
+    assert any(item.target == "Rust" for item in snapshot.assertions) == merge
+    note = next(item for item in snapshot.assertions if item.relation == "project_note")
+    assert note.evidence[0].reference == "git:blob:" + git(
+        repository, "rev-parse", f"HEAD:{note_path}"
+    )
+    assert assertion_id(note) in report["refreshed"]
+    assert main(command) == 0
+    assert json.loads(capsys.readouterr().out) == report
+    assert git(repository, "status", "--porcelain") == status
 
 
 def test_vault_cli_retrieves_active_shared_notes_at_pinned_commit(repository, capsys):
