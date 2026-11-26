@@ -76,8 +76,8 @@ The following decisions form the current AEW v0.1 architectural baseline.
 
 | ID | Decision | Status | Document |
 |---|---|---|---|
-| ADR-001 | Project Brain storage | Unconfirmed | [ADR-001](ADR-001-project-brain-storage.md) |
-| ADR-002 | Shared knowledge vault | Unconfirmed | [ADR-002](ADR-002-knowledge-vault.md) |
+| ADR-001 | Project Brain storage | Accepted | [ADR-001](ADR-001-project-brain-storage.md) |
+| ADR-002 | Shared knowledge vault | Accepted | [ADR-002](ADR-002-knowledge-vault.md) |
 | ADR-003 | Revision-scoped graph snapshots | Accepted | [ADR-003](ADR-003-revision-scoped-snapshots.md) |
 | ADR-004 | Workspace consistency and concurrent modification protection | Accepted | [ADR-004](ADR-004-workspace-consistency.md) |
 | ADR-005 | Git preflight and task branch strategy | Accepted | [ADR-005](ADR-005-git-preflight.md) |

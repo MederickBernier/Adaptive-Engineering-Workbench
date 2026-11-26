@@ -92,7 +92,7 @@ Logical separation is mandatory; a **single SQLite database with separate tables
 
 ### 5.2 Shared knowledge vault
 
-Git-backed, Obsidian-compatible Markdown with stable IDs independent of filenames, minimal required frontmatter (no more than four mandatory fields), typed relations and provenance. Lifecycle state is separate from authority. AI-generated inferences remain provisional until appropriately validated. Project-restricted material cannot be promoted into a more widely visible vault. Reviewed shared changes follow Git policy.
+Git-backed, Obsidian-compatible Markdown with stable IDs independent of filenames, typed relations, and provenance. ADR-002 requires eight frontmatter fields: `id`, `title`, `status`, `kind`, `visibility`, `created`, `updated`, and `sources`. Lifecycle state is separate from authority. AI-generated inferences remain provisional until appropriately validated. Project-restricted material cannot be promoted into a more widely visible vault. Reviewed shared changes follow Git policy.
 
 ### 5.3 Project Intelligence Profile (ADR-006)
 
