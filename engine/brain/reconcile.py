@@ -73,7 +73,9 @@ def reconcile(
         raise ValueError(
             "HEAD changed during reconciliation; retry with the intended checkout"
         )
-    snapshot = brain.publish(view.revision, base.regions, (*retained, *generated))
+    snapshot = brain.publish_reconciliation(
+        base, view.revision, (*retained, *generated)
+    )
     new_keys = {_key(item) for item in generated}
     return Reconciliation(
         base.id,

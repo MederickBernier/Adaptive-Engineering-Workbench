@@ -330,6 +330,10 @@ def test_brain_reconcile_refreshes_knowledge_after_pull(
     assert report["needs_review"] == [assertion_id(affected_claim)]
     snapshot = brain.load(report["snapshot_id"])
     assert snapshot.revision.commit == head
+    reopened = ProjectBrain(database, brain.repository)
+    assert reopened.reconciled_snapshot_id(head, "src/api") == snapshot.id
+    assert reopened.reconciled_snapshot_id(head, ".") is None
+    assert reopened.reconciled_snapshot_id(base.revision.commit, "src") is None
     assert brain.load(base.id) == base
     assert replace(retained_claim, revision=snapshot.revision) in snapshot.assertions
     assert all(item.relation != "observed_behavior" for item in snapshot.assertions)

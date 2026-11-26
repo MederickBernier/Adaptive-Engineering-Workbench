@@ -289,17 +289,23 @@ def test_concurrent_plan_appends_require_a_current_predecessor(tmp_path: Path) -
     assert history.load(first.plan_id, 1) == first
 
 
-def test_plan_history_migrates_existing_project_brain(tmp_path: Path) -> None:
+@pytest.mark.parametrize("version", [1, 4])
+def test_plan_history_migrates_existing_project_brain(
+    tmp_path: Path, version: int
+) -> None:
     path = tmp_path / "brain.sqlite3"
     brain = ProjectBrain(path, task().repository)
     original = brain.publish(Revision(brain.repository, "a" * 40), (".",), ())
     with closing(sqlite3.connect(path)) as db, db:
-        db.execute("DROP TABLE plan_revisions")
-        db.execute("DROP TABLE discovery_cache")
-        db.execute("DROP TABLE bootstrap_sessions")
-        db.execute("PRAGMA user_version = 1")
+        if version == 1:
+            db.execute("DROP TABLE plan_revisions")
+            db.execute("DROP TABLE discovery_cache")
+            db.execute("DROP TABLE bootstrap_sessions")
+        db.execute("DROP TABLE reconciliations")
+        db.execute(f"PRAGMA user_version = {version}")
     migrated = ProjectBrain(path, brain.repository)
     assert migrated.load(original.id) == original
+    assert migrated.reconciled_snapshot_id(original.revision.commit, ".") is None
     assert PlanHistory(migrated).append(quick_draft()).revision == 1
     with pytest.raises(PlanningError, match="does not match"):
         PlanHistory(migrated).append(

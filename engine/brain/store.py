@@ -21,7 +21,7 @@ from engine.brain.model import (
     validate_path,
 )
 
-_SCHEMA_VERSION = 4
+_SCHEMA_VERSION = 5
 _SCHEMA = (
     "CREATE TABLE project (id INTEGER PRIMARY KEY CHECK (id = 1), repository TEXT NOT NULL)",
     (
@@ -49,6 +49,11 @@ _BOOTSTRAP_SCHEMA = (
     "CREATE TABLE bootstrap_sessions (id TEXT PRIMARY KEY, version INTEGER NOT NULL, "
     "commit_id TEXT NOT NULL, payload TEXT NOT NULL, "
     "snapshot_id TEXT REFERENCES snapshots(id), published_at TEXT)"
+)
+_RECONCILIATION_SCHEMA = (
+    "CREATE TABLE reconciliations (publication INTEGER PRIMARY KEY, "
+    "commit_id TEXT NOT NULL, base_id TEXT NOT NULL REFERENCES snapshots(id), "
+    "snapshot_id TEXT NOT NULL REFERENCES snapshots(id), UNIQUE(base_id, snapshot_id))"
 )
 
 
@@ -93,7 +98,7 @@ class ProjectBrain:
                 for statement in _SCHEMA:
                     db.execute(statement)
                 db.execute("INSERT INTO project VALUES (1, ?)", (repository,))
-            elif version not in (1, 2, 3, _SCHEMA_VERSION):
+            elif version not in (1, 2, 3, 4, _SCHEMA_VERSION):
                 raise ValueError(f"Unsupported Project Brain schema version: {version}")
             self._check_identity(db)
             if version < 2:
@@ -102,6 +107,11 @@ class ProjectBrain:
                 db.execute(_DISCOVERY_SCHEMA)
             if version < 4:
                 db.execute(_BOOTSTRAP_SCHEMA)
+            if version < 5:
+                db.execute(_RECONCILIATION_SCHEMA)
+                db.execute(
+                    "CREATE INDEX reconciliation_commit ON reconciliations(commit_id, publication)"
+                )
                 db.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
 
     def _connect(self) -> sqlite3.Connection:
@@ -181,6 +191,40 @@ class ProjectBrain:
                 ((snapshot_id, key) for key in members),
             )
         return snapshot_id
+
+    def publish_reconciliation(
+        self, base: Snapshot, revision: Revision, assertions: Iterable[Assertion]
+    ) -> Snapshot:
+        """Publish the snapshot and its reconciliation provenance atomically."""
+        with self._write() as db:
+            snapshot_id = self._publish(db, revision, base.regions, assertions)
+            db.execute(
+                "INSERT INTO reconciliations (commit_id, base_id, snapshot_id) "
+                "VALUES (?, ?, ?) ON CONFLICT(base_id, snapshot_id) DO NOTHING",
+                (revision.commit, base.id, snapshot_id),
+            )
+        return self.load(snapshot_id)
+
+    def reconciled_snapshot_id(self, commit: str, region: str) -> str | None:
+        """Find the latest reconciliation covering the entire requested region."""
+        validate_commit(commit)
+        if region != ".":
+            validate_path(region)
+        with closing(self._connect()) as db:
+            self._check_identity(db)
+            rows = db.execute(
+                "SELECT reconciliations.snapshot_id, snapshots.regions "
+                "FROM reconciliations JOIN snapshots ON snapshots.id = reconciliations.snapshot_id "
+                "WHERE commit_id = ? ORDER BY publication DESC",
+                (commit,),
+            )
+            for snapshot_id, coverage in rows:
+                if any(
+                    area == "." or region == area or region.startswith(area + "/")
+                    for area in json.loads(coverage)
+                ):
+                    return snapshot_id
+        return None
 
     def bootstrap_snapshot_id(self, commit: str) -> str | None:
         """Find the most recent locally approved bootstrap for this exact commit."""
