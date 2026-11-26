@@ -916,6 +916,67 @@ def test_discovery_reuses_pinned_coverage_without_rescanning(
     assert scan.call_count == 3
 
 
+def test_config_show_is_read_only_and_reports_setting_sources(
+    repository, tmp_path, monkeypatch
+):
+    root = Path(__file__).resolve().parents[2]
+    data_home = tmp_path / "data"
+    monkeypatch.setenv("LOCALAPPDATA", str(data_home))
+    monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "profile"))
+    monkeypatch.setenv("HOME", str(tmp_path / "profile"))
+    user = tmp_path / "profile" / ".config" / "aew" / "config.json"
+    user.parent.mkdir(parents=True)
+    user.write_text(
+        '{"git":{"integration_branch":"develop","branches":{"prefix":"team/"}}}',
+        encoding="utf-8",
+    )
+    project = repository / ".aew" / "config.json"
+    project.parent.mkdir()
+    project.write_text(
+        '{"git":{"integration_branch":"main"},"private":"do-not-display"}',
+        encoding="utf-8",
+    )
+    adapter = GitRepository(repository)
+    before = adapter.snapshot()
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "engine.workflow.cli",
+            "config",
+            "show",
+            "--repository",
+            str(repository),
+        ],
+        cwd=root,
+        stdin=subprocess.DEVNULL,
+        text=True,
+        capture_output=True,
+        check=True,
+        timeout=20,
+    )
+    show = json.loads(result.stdout)
+    assert show["integration_branch"] == {
+        "value": "main",
+        "source": "project",
+        "remote_verified": False,
+    }
+    assert show["settings"]["git.branches.prefix"] == {
+        "value": "team/",
+        "source": "user",
+    }
+    assert show["settings"]["delivery.push.execute"] == {
+        "value": False,
+        "source": "built_in",
+    }
+    assert [item["loaded"] for item in show["files"]] == [True, True]
+    assert show["project_brain"]["source"] == "user_data_default"
+    assert "do-not-display" not in result.stdout
+    assert not data_home.exists()
+    assert adapter.snapshot() == before
+
+
 def test_repository_discovery(
     repository: Path,
 ) -> None:

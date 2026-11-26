@@ -26,6 +26,7 @@ import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from dataclasses import field as data_field
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
@@ -261,6 +262,8 @@ class AEWConfig:
     """Validated effective AEW configuration."""
 
     values: dict[str, Any]
+    sources: dict[tuple[str, ...], str] = data_field(default_factory=dict)
+    files: tuple[tuple[str, Path, bool], ...] = ()
 
     @property
     def integration_branch(self) -> str | None:
@@ -353,6 +356,37 @@ def default_brain_path(repository_root: Path) -> Path:
     return data_root / folder / "projects" / identifier / "brain.sqlite3"
 
 
+def _leaves(
+    mapping: dict[str, Any], prefix: tuple[str, ...] = ()
+) -> dict[tuple[str, ...], Any]:
+    leaves = {}
+    for name, value in mapping.items():
+        key = (*prefix, name)
+        if isinstance(value, dict):
+            leaves.update(_leaves(value, key))
+        else:
+            leaves[key] = value
+    return leaves
+
+
+def describe_settings(config: AEWConfig) -> dict[str, dict[str, Any]]:
+    """Describe recognized settings without exposing unknown configuration keys."""
+    effective = _leaves(config.values)
+    return {
+        ".".join(name): {
+            "value": effective[name],
+            "source": config.sources.get(name, "built_in"),
+        }
+        for name, default in _leaves(DEFAULT_CONFIG).items()
+        if name in effective
+        and (
+            type(effective[name]) is type(default)
+            or default is None
+            and isinstance(effective[name], str)
+        )
+    }
+
+
 def load_config(
     repository_root: Path,
     *,
@@ -365,18 +399,16 @@ def load_config(
 
     project_config_path = repository_root / ".aew" / "config.json"
 
-    config = copy.deepcopy(DEFAULT_CONFIG)
-
-    config = _merge(
-        config,
-        _load_json(user_config_path),
-    )
-
-    config = _merge(
-        config,
-        _load_json(project_config_path),
-    )
+    config = DEFAULT_CONFIG
+    sources = {}
+    files = []
+    for layer, path in (("user", user_config_path), ("project", project_config_path)):
+        present = path.exists()
+        overrides = _load_json(path)
+        config = _merge(config, overrides)
+        sources.update(dict.fromkeys(_leaves(overrides), layer))
+        files.append((layer, path, present))
 
     validate_config(config)
 
-    return AEWConfig(values=config)
+    return AEWConfig(values=config, sources=sources, files=tuple(files))

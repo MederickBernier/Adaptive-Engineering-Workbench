@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from engine.brain.store import ProjectBrain
-from engine.config import default_brain_path
+from engine.config import default_brain_path, describe_settings, load_config
 from engine.git.repository import GitError, GitRepository
 from engine.github.client import GitHubClient
 from engine.planning.assessment import Level, Profile, assess
@@ -57,7 +57,62 @@ def _request(data: dict[str, Any], repository: str) -> Intake:
     )
 
 
+def _brain_path(repository: GitRepository, override: Path | None) -> Path:
+    path = (override or default_brain_path(repository.root)).resolve()
+    if path.is_relative_to(repository.root):
+        raise ValueError("Choose a Project Brain path outside the checkout")
+    return path
+
+
+def _config_show(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="aew-task config show",
+        description="Show configuration without writing state or querying the network.",
+    )
+    parser.add_argument("--repository", type=Path, default=Path.cwd())
+    parser.add_argument("--brain", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        repository = GitRepository(args.repository)
+        config = load_config(repository.root)
+        brain_path = _brain_path(repository, args.brain)
+        settings = describe_settings(config)
+        branch = config.integration_branch
+        source = settings["git.integration_branch"]["source"]
+        if branch is None:
+            branch = repository.remote_default_branch()
+            source = "cached_remote_head" if branch else "unresolved"
+        document = {
+            "repository": repository.root.as_uri(),
+            "files": [
+                {"layer": layer, "path": str(path), "loaded": present}
+                for layer, path, present in config.files
+            ],
+            "settings": settings,
+            "project_brain": {
+                "path": str(brain_path),
+                "source": "command_line" if args.brain else "user_data_default",
+            },
+            "integration_branch": {
+                "value": branch,
+                "source": source,
+                "remote_verified": False,
+            },
+        }
+    except (ValueError, GitError, OSError) as error:
+        print(
+            json.dumps({"error": str(error), "state": "configuration_failed"}),
+            file=sys.stderr,
+        )
+        return 1
+    print(json.dumps(document, sort_keys=True, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:2] == ["config", "show"]:
+        return _config_show(argv[2:])
     parser = argparse.ArgumentParser(
         description="Prepare an advisory AEW task plan from JSON on stdin."
     )
@@ -74,9 +129,7 @@ def main(argv: list[str] | None = None) -> int:
         if not isinstance(data, dict):
             raise TypeError("Expected an intake JSON object")
         repository = GitRepository(arguments.repository)
-        brain_path = (arguments.brain or default_brain_path(repository.root)).resolve()
-        if brain_path.is_relative_to(repository.root):
-            raise ValueError("Choose a Project Brain path outside the checkout")
+        brain_path = _brain_path(repository, arguments.brain)
         request = _request(data, repository.root.as_uri())
         if arguments.brain is None:
             brain_path.parent.mkdir(parents=True, exist_ok=True)
