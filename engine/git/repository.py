@@ -495,6 +495,46 @@ class GitRepository:
         )
         return match[1] if match else None
 
+    def remote_default_branch(
+        self, remote: str = "origin", *, live: bool = False
+    ) -> str | None:
+        """Resolve a remote HEAD without changing local refs."""
+        if remote not in self._run(["remote"]).stdout.splitlines():
+            return None
+        if live:
+            result = self._run(
+                [
+                    "-c",
+                    "protocol.ext.allow=never",
+                    "ls-remote",
+                    "--symref",
+                    "--",
+                    remote,
+                    "HEAD",
+                ],
+                check=False,
+            )
+            branches = [
+                line.removeprefix("ref: refs/heads/").removesuffix("\tHEAD")
+                for line in result.stdout.splitlines()
+                if line.startswith("ref: refs/heads/") and line.endswith("\tHEAD")
+            ]
+            branch = branches[0] if len(branches) == 1 else ""
+        else:
+            result = self._run(
+                ["symbolic-ref", "--quiet", f"refs/remotes/{remote}/HEAD"], check=False
+            )
+            prefix = f"refs/remotes/{remote}/"
+            reference = result.stdout.strip()
+            branch = (
+                reference.removeprefix(prefix) if reference.startswith(prefix) else ""
+            )
+        return (
+            branch
+            if result.returncode == 0 and self.is_valid_branch_name(branch)
+            else None
+        )
+
     def remote_branch_commit(
         self, branch: str, *, remote: str = "origin"
     ) -> str | None:

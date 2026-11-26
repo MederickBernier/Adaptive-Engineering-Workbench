@@ -440,10 +440,10 @@ To run the opt-in Docker integration tests, set `AEW_TEST_DOCKER_IMAGE` to the I
 
 ## Task workflow
 
-From an attached checkout, send task intake JSON to the installed `aew-task` command or to `python -m engine.workflow.cli`. Keep the SQLite database outside the checkout.
+From an attached checkout, send task intake JSON to the installed `aew-task` command or to `python -m engine.workflow.cli`. AEW creates a checkout-specific database under `%LOCALAPPDATA%\AEW\projects` on Windows or `$XDG_DATA_HOME/aew/projects` on Unix (defaulting to `~/.local/share/aew/projects`). Use `--brain` to select an existing database outside the checkout.
 
 ```powershell
-Get-Content task.json -Raw | aew-task --brain "$env:LOCALAPPDATA\aew-project.sqlite3"
+Get-Content task.json -Raw | aew-task
 ```
 
 Example `task.json` for Quick planning:
@@ -470,7 +470,7 @@ Example `task.json` for Quick planning:
 }
 ```
 
-The JSON response contains the sealed Context Package and recorded plan revision. Preserve both for the trusted host. Remote verification is opt-in through `--verify-remote` and `--github-repository owner/repository`. An unresolved preflight can produce an advisory implementation plan. Isolated execution requires complete preflight coverage and a scoped grant. The trusted host exposes the guarded operations through `TaskHost`.
+The JSON response contains the sealed Context Package and recorded plan revision. Preserve both for the trusted host. Remote verification is opt-in through `--verify-remote` and `--github-repository owner/repository`. With no configured integration branch, local inspection uses the cached remote HEAD as a hint and remote verification queries the live symbolic HEAD. AEW's own `.aew/config.json` keeps `master` and `mb/` project-specific. An unresolved preflight can produce an advisory implementation plan. Isolated execution requires complete preflight coverage and a scoped grant. The trusted host exposes the guarded operations through `TaskHost`.
 
 ---
 

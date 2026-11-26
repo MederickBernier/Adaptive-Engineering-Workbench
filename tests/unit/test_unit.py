@@ -83,8 +83,8 @@ def test_default_configuration(
         user_config,
     )
 
-    assert config.integration_branch == "master"
-    assert config.branch_prefix == "mb/"
+    assert config.integration_branch is None
+    assert config.branch_prefix == ""
 
     assert config.branch_pattern == ("{prefix}{type}/{issue}-{slug}")
 
@@ -130,7 +130,7 @@ def test_user_configuration_overrides_defaults(
     )
 
     assert config.branch_prefix == "dev/"
-    assert config.integration_branch == "master"
+    assert config.integration_branch is None
 
 
 def test_project_configuration_overrides_user(
@@ -189,25 +189,25 @@ def test_nested_configuration_merge(
             "bug",
             "142",
             "Null Customer Response",
-            "mb/fix/142-null-customer-response",
+            "fix/142-null-customer-response",
         ),
         (
             "feature",
             "187",
             "Add Rate Limiting",
-            "mb/feat/187-add-rate-limiting",
+            "feat/187-add-rate-limiting",
         ),
         (
             "refactor",
             "215",
             "Authentication Service",
-            "mb/refactor/215-authentication-service",
+            "refactor/215-authentication-service",
         ),
         (
             "documentation",
             "203",
             "Update API Documentation",
-            "mb/docs/203-update-api-documentation",
+            "docs/203-update-api-documentation",
         ),
     ],
 )
@@ -259,7 +259,7 @@ def test_custom_branch_pattern(
             issue="142",
             title="Null Customer Response",
         )
-        == "mb/142-null-customer-response"
+        == "142-null-customer-response"
     )
 
 

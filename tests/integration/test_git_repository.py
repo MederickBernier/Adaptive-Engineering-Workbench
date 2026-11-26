@@ -550,6 +550,9 @@ def implementation_execution(guarded_execution, tmp_path, monkeypatch):
     adapter, _, _, draft, signed, envelope, policy = guarded_execution
     commit = envelope.workspace.commit
     monkeypatch.setattr(
+        adapter, "remote_default_branch", lambda *_args, **_kwargs: "master"
+    )
+    monkeypatch.setattr(
         adapter, "integration_branch_commit", lambda *_args, **_kwargs: commit
     )
     monkeypatch.setattr(
@@ -799,7 +802,9 @@ def test_delivery_proposal_excludes_unrelated_workspace_changes(
         ("explore", "low", "high"),
     ],
 )
-def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncertainty):
+def test_task_cli_plans_all_profiles(
+    repository, tmp_path, profile, risk, uncertainty, monkeypatch
+):
     (repository / "src").mkdir()
     (repository / "src/example.py").write_text("value = 1", encoding="utf-8")
     git(repository, "add", ".")
@@ -845,6 +850,12 @@ def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncert
     if profile == "explore":
         request.update(questions=["What does the example do?"], investigation_budget=3)
     root = Path(__file__).resolve().parents[2]
+    data_home = tmp_path / "data"
+    monkeypatch.setenv("LOCALAPPDATA", str(data_home))
+    monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
+    brain_options = (
+        [] if profile == "quick" else ["--brain", str(tmp_path / "workflow.sqlite3")]
+    )
     result = subprocess.run(
         [
             sys.executable,
@@ -852,8 +863,7 @@ def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncert
             "engine.workflow.cli",
             "--repository",
             str(repository),
-            "--brain",
-            str(tmp_path / "workflow.sqlite3"),
+            *brain_options,
         ],
         cwd=root,
         input=json.dumps(request),
@@ -863,6 +873,8 @@ def test_task_cli_plans_all_profiles(repository, tmp_path, profile, risk, uncert
         timeout=30,
     )
     output = json.loads(result.stdout)
+    if not brain_options:
+        assert len(list(data_home.glob("*/projects/*/brain.sqlite3"))) == 1
     document = output["plan"]["task_document"]
     schema = json.loads((root / "contracts/task.schema.json").read_bytes())
     Draft202012Validator(schema).validate(document)
@@ -1170,6 +1182,7 @@ def test_remote_tracking_branch(
     remote.mkdir()
 
     git(remote, "init", "--bare")
+    git(remote, "symbolic-ref", "HEAD", "refs/heads/master")
 
     git(
         repository,
@@ -1217,6 +1230,15 @@ def test_remote_tracking_branch(
     before = git(repository, "show-ref")
     commit = git(repository, "rev-parse", "master")
     assert adapter.remote_branch_commit("master") == commit
+    git(
+        repository,
+        "symbolic-ref",
+        "refs/remotes/origin/HEAD",
+        "refs/remotes/origin/stale",
+    )
+    assert adapter.remote_default_branch() == "stale"
+    assert adapter.remote_default_branch(live=True) == "master"
+    git(repository, "symbolic-ref", "--delete", "refs/remotes/origin/HEAD")
     assert adapter.local_branch_commit("master") == commit
     assert adapter.has_commit(commit)
     assert adapter.remote_branch_commit("missing") is None

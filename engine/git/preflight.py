@@ -91,7 +91,7 @@ class LocalPreflightReport:
     repository: Path
     branch: str | None
     head_commit: str | None
-    integration_branch: str
+    integration_branch: str | None
     integration_commit: str | None
     proposed_branch: str | None
     branch_collision: bool | None
@@ -632,10 +632,20 @@ class GitPreflight:
             )
 
         integration_branch = self._config.integration_branch
+        if integration_branch is None:
+            try:
+                integration_branch = self._repository.remote_default_branch(
+                    remote, live=verify_remote
+                )
+            except GitError:
+                integration_branch = None
 
-        integration_commit = self._repository.integration_branch_commit(
-            integration_branch,
-            remote=remote,
+        integration_commit = (
+            self._repository.integration_branch_commit(
+                integration_branch, remote=remote
+            )
+            if integration_branch
+            else None
         )
 
         if integration_commit is None:
@@ -647,12 +657,12 @@ class GitPreflight:
                         "No locally known remote-tracking "
                         "integration commit is available."
                     ),
-                    evidence=(f"{remote}/{integration_branch}",),
+                    evidence=(f"{remote}/{integration_branch or 'HEAD'}",),
                 )
             )
 
         baseline = None
-        if verify_remote:
+        if verify_remote and integration_branch:
             baseline = self._inspect_baseline(
                 integration_branch, remote, integration_commit, findings
             )

@@ -22,9 +22,11 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -35,9 +37,9 @@ class ConfigurationError(ValueError):
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "git": {
-        "integration_branch": "master",
+        "integration_branch": None,
         "branches": {
-            "prefix": "mb/",
+            "prefix": "",
             "naming_pattern": "{prefix}{type}/{issue}-{slug}",
             "check_remote_collision": True,
             "create_from_integration": True,
@@ -206,10 +208,8 @@ def validate_config(
     if not isinstance(git, dict):
         raise ConfigurationError("git configuration must be an object")
 
-    _require_string(
-        git.get("integration_branch"),
-        "git.integration_branch",
-    )
+    if git.get("integration_branch") is not None:
+        _require_string(git["integration_branch"], "git.integration_branch")
 
     branches = git.get("branches")
 
@@ -263,7 +263,7 @@ class AEWConfig:
     values: dict[str, Any]
 
     @property
-    def integration_branch(self) -> str:
+    def integration_branch(self) -> str | None:
         return self.values["git"]["integration_branch"]
 
     @property
@@ -333,6 +333,24 @@ class AEWConfig:
             raise ConfigurationError("Generated branch name exceeds 100 characters")
 
         return branch
+
+
+def default_brain_path(repository_root: Path) -> Path:
+    """Choose a per-user database keyed to the resolved checkout identity."""
+    if os.name == "nt":
+        data_root = Path(
+            os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"
+        )
+        folder = "AEW"
+    else:
+        data_root = Path(
+            os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
+        )
+        folder = "aew"
+    if not data_root.is_absolute():
+        raise ConfigurationError("The user data directory must be absolute")
+    identifier = sha256(repository_root.resolve().as_uri().encode()).hexdigest()
+    return data_root / folder / "projects" / identifier / "brain.sqlite3"
 
 
 def load_config(

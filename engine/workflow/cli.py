@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from engine.brain.store import ProjectBrain
+from engine.config import default_brain_path
 from engine.git.repository import GitError, GitRepository
 from engine.github.client import GitHubClient
 from engine.planning.assessment import Level, Profile, assess
@@ -61,7 +62,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Prepare an advisory AEW task plan from JSON on stdin."
     )
     parser.add_argument("--repository", type=Path, default=Path.cwd())
-    parser.add_argument("--brain", type=Path, required=True)
+    parser.add_argument("--brain", type=Path)
     parser.add_argument("--verify-remote", action="store_true")
     parser.add_argument("--github-repository")
     arguments = parser.parse_args(argv)
@@ -73,10 +74,13 @@ def main(argv: list[str] | None = None) -> int:
         if not isinstance(data, dict):
             raise TypeError("Expected an intake JSON object")
         repository = GitRepository(arguments.repository)
-        if arguments.brain.resolve().is_relative_to(repository.root):
+        brain_path = (arguments.brain or default_brain_path(repository.root)).resolve()
+        if brain_path.is_relative_to(repository.root):
             raise ValueError("Choose a Project Brain path outside the checkout")
         request = _request(data, repository.root.as_uri())
-        brain = ProjectBrain(arguments.brain, request.task.repository)
+        if arguments.brain is None:
+            brain_path.parent.mkdir(parents=True, exist_ok=True)
+        brain = ProjectBrain(brain_path, request.task.repository)
         github = (
             GitHubClient(arguments.github_repository)
             if arguments.github_repository

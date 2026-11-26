@@ -65,7 +65,10 @@ def config() -> AEWConfig:
 
     import copy
 
-    return AEWConfig(values=copy.deepcopy(DEFAULT_CONFIG))
+    values = copy.deepcopy(DEFAULT_CONFIG)
+    values["git"]["integration_branch"] = "master"
+    values["git"]["branches"]["prefix"] = "mb/"
+    return AEWConfig(values=values)
 
 
 @dataclass
