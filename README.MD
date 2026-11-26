@@ -110,6 +110,8 @@ Each Markdown file in that directory is a managed note. Start it with YAML front
 
 Use `aew-task vault search --vault <directory> --query "retry operations"` to find active, shared notes. Omit `--query` to list them. Use `aew-task vault show --vault <directory> kb:engineering:idempotent-operations` to read a note with its provenance, applicability, Git commit, and blob ID. Both commands accept `--commit <full-sha>`. Keep restricted notes in separately access-controlled repositories. Vault results are reference material, and task intake does not load them automatically.
 
+When `--vault` is omitted, vault commands use `vault.path` from the selected checkout's AEW configuration. The built-in path is `knowledge-vault` under the checkout root. Set `{"vault": {"path": "~/engineering-knowledge"}}` in your user configuration or override it in the project's `.aew/config.json`. Configured relative paths are relative to the checkout root. Use `--repository <checkout>` to select which checkout supplies configuration. An explicit `--vault` selects a directory directly, with relative paths interpreted from the current directory.
+
 ## Workflow
 
 AEW uses four adaptive task profiles:

@@ -166,6 +166,44 @@ def test_vault_rejects_invalid_metadata(repository, note, error):
         load_vault(vault_path)
 
 
+def test_vault_cli_resolves_default_and_configured_paths(
+    repository, tmp_path, monkeypatch, capsys
+):
+    home = tmp_path / "home"
+    user_config = home / ".config" / "aew" / "config.json"
+    user_config.parent.mkdir(parents=True)
+    monkeypatch.setattr(Path, "home", lambda: home)
+    for directory in ("knowledge-vault", "user-notes", "project-notes"):
+        vault = repository / directory
+        vault.mkdir()
+        (vault / "note.md").write_text(_vault_note(directory), encoding="utf-8")
+    git(repository, "add", ".")
+    git(repository, "commit", "-m", "Create candidate vaults")
+    command = ["vault", "search", "--repository", str(repository)]
+
+    def selected(*options):
+        assert main([*command, *options]) == 0
+        return json.loads(capsys.readouterr().out)["documents"][0]["id"]
+
+    assert selected() == "kb:engineering:knowledge-vault"
+    user_config.write_text(
+        json.dumps({"vault": {"path": str(repository / "user-notes")}}),
+        encoding="utf-8",
+    )
+    assert selected() == "kb:engineering:user-notes"
+    project_config = repository / ".aew" / "config.json"
+    project_config.parent.mkdir()
+    project_config.write_text('{"vault": {"path": "project-notes"}}', encoding="utf-8")
+    assert selected() == "kb:engineering:project-notes"
+    assert (
+        selected("--vault", str(repository / "user-notes"))
+        == "kb:engineering:user-notes"
+    )
+    project_config.write_text('{"vault": {"path": false}}', encoding="utf-8")
+    assert main(["vault", "validate", "--repository", str(repository)]) == 1
+    assert "vault.path" in capsys.readouterr().err
+
+
 def test_vault_cli_retrieves_active_shared_notes_at_pinned_commit(repository, capsys):
     vault_path = repository / "vault"
     vault_path.mkdir()

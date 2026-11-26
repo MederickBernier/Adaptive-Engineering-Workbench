@@ -37,6 +37,7 @@ class ConfigurationError(ValueError):
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
+    "vault": {"path": "knowledge-vault"},
     "git": {
         "integration_branch": None,
         "branches": {
@@ -204,6 +205,13 @@ def validate_config(
 ) -> None:
     """Validate the effective AEW configuration."""
 
+    vault = config.get("vault")
+    if not isinstance(vault, dict):
+        raise ConfigurationError("vault configuration must be an object")
+    vault_path = _require_string(vault.get("path"), "vault.path")
+    if "\x00" in vault_path:
+        raise ConfigurationError("vault.path must not contain a null character")
+
     git = config.get("git")
 
     if not isinstance(git, dict):
@@ -354,6 +362,21 @@ def default_brain_path(repository_root: Path) -> Path:
         raise ConfigurationError("The user data directory must be absolute")
     identifier = sha256(repository_root.resolve().as_uri().encode()).hexdigest()
     return data_root / folder / "projects" / identifier / "brain.sqlite3"
+
+
+def resolve_vault_path(
+    repository_root: Path, config: AEWConfig, override: Path | None = None
+) -> tuple[Path, str]:
+    """Resolve the selected vault without requiring it to exist."""
+    if override is not None:
+        return override.expanduser().resolve(), "command_line"
+    path = Path(config.values["vault"]["path"]).expanduser()
+    if path.anchor and not path.is_absolute():
+        raise ConfigurationError("vault.path must be absolute or checkout-relative")
+    return (
+        (repository_root / path).resolve(),
+        config.sources.get(("vault", "path"), "built_in"),
+    )
 
 
 def _leaves(

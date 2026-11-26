@@ -9,7 +9,12 @@ from typing import Any
 
 from engine.brain.bootstrap import BootstrapInterview, scan_bootstrap
 from engine.brain.store import ProjectBrain
-from engine.config import default_brain_path, describe_settings, load_config
+from engine.config import (
+    default_brain_path,
+    describe_settings,
+    load_config,
+    resolve_vault_path,
+)
 from engine.git.repository import GitError, GitRepository
 from engine.github.client import GitHubClient
 from engine.planning.assessment import Level, Profile, assess
@@ -187,7 +192,10 @@ def _vault(argv: list[str]) -> int:
     commands = parser.add_subparsers(dest="action", required=True)
     for action in ("validate", "search", "show"):
         command = commands.add_parser(action)
-        command.add_argument("--vault", type=Path, required=True)
+        command.add_argument(
+            "--vault", type=Path, help="Override the configured vault path"
+        )
+        command.add_argument("--repository", type=Path, default=Path.cwd())
         command.add_argument("--commit", help="Full local commit ID (default: HEAD)")
         if action == "search":
             command.add_argument("--query", default="", help="Words to match in notes")
@@ -195,7 +203,11 @@ def _vault(argv: list[str]) -> int:
             command.add_argument("id", help="Stable knowledge ID")
     args = parser.parse_args(argv)
     try:
-        vault = load_vault(args.vault, args.commit)
+        path = args.vault
+        if path is None:
+            repository = GitRepository(args.repository)
+            path, _ = resolve_vault_path(repository.root, load_config(repository.root))
+        vault = load_vault(path.expanduser(), args.commit)
     except (GitError, OSError, ValueError) as error:
         message = (
             str(error)
