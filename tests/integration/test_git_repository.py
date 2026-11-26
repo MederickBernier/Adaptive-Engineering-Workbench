@@ -65,6 +65,7 @@ from engine.git.repository import (
 from engine.planning.assessment import Level, assess
 from engine.planning.history import PlanHistory
 from engine.planning.plan import Task, WorkUnit, build_plan
+from engine.workflow.cli import main
 from engine.workflow.host import TaskHost
 from engine.workflow.intake import Intake, plan_task
 
@@ -163,6 +164,62 @@ def test_vault_rejects_invalid_metadata(repository, note, error):
     git(repository, "commit", "-m", "Create invalid vault")
     with pytest.raises(ValueError, match=error):
         load_vault(vault_path)
+
+
+def test_vault_cli_retrieves_active_shared_notes_at_pinned_commit(repository, capsys):
+    vault_path = repository / "vault"
+    vault_path.mkdir()
+    (vault_path / "one.md").write_text(
+        _vault_note("one").replace(
+            "sources:",
+            "applicability: Retryable requests\nrelated: [kb:engineering:private]\nsources:",
+        ),
+        encoding="utf-8",
+    )
+    for name, old, new in [
+        ("private", "visibility: shared", "visibility: private"),
+        ("team", "visibility: shared", "visibility: team"),
+        ("draft", "status: active", "status: draft"),
+        ("archived", "status: active", "status: archived"),
+    ]:
+        (vault_path / f"{name}.md").write_text(
+            _vault_note(name).replace(old, new), encoding="utf-8"
+        )
+    git(repository, "add", "vault")
+    git(repository, "commit", "-m", "Create notes with mixed visibility")
+    commit = git(repository, "rev-parse", "HEAD")
+    options = ["--vault", str(vault_path)]
+    get = ["vault", "show", "kb:engineering:one", *options]
+
+    assert main(["vault", "validate", *options]) == 0
+    assert json.loads(capsys.readouterr().out)["documents"] == 5
+    assert main(["vault", "search", *options, "--query", "REQUESTS example"]) == 0
+    search = json.loads(capsys.readouterr().out)
+    assert [item["id"] for item in search["documents"]] == ["kb:engineering:one"]
+    assert main(["vault", "search", *options]) == 0
+    assert json.loads(capsys.readouterr().out) == search
+    for name in ("private", "team", "draft", "archived"):
+        assert main(["vault", "show", f"kb:engineering:{name}", *options]) == 1
+        assert (
+            json.loads(capsys.readouterr().err)["error"]
+            == "No active shared note with that ID"
+        )
+
+    git(repository, "rm", "vault/one.md")
+    git(repository, "commit", "-m", "Remove the active shared note")
+    before = git(repository, "status", "--porcelain")
+    assert main(get) == 1
+    capsys.readouterr()
+    assert main([*get, "--commit", commit]) == 0
+    result = json.loads(capsys.readouterr().out)
+    note = result["document"]
+    assert result["commit"] == commit
+    assert note["blob"] == git(repository, "rev-parse", f"{commit}:vault/one.md")
+    assert note["sources"] == [{"type": "reference", "value": "Engineering handbook"}]
+    assert note["applicability"] == ["Retryable requests"]
+    assert note["relations"] == []
+    assert "Example note." in note["body"]
+    assert git(repository, "status", "--porcelain") == before
 
 
 @pytest.fixture

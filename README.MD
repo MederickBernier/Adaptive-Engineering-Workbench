@@ -108,6 +108,8 @@ Use `aew-task vault validate --vault <directory>` to validate Markdown in a dedi
 
 Each Markdown file in that directory is a managed note. Start it with YAML frontmatter containing `id`, `title`, `status`, `kind`, `visibility`, `created`, `updated`, and `sources`. Use stable `kb:<namespace>:<identifier>` IDs and a nonempty list of sources with `type` and `value`. Relationships such as `related` and `supersedes` resolve by ID within the same revision. Full vault synchronization and promotion are outside this read-only workflow.
 
+Use `aew-task vault search --vault <directory> --query "retry operations"` to find active, shared notes. Omit `--query` to list them. Use `aew-task vault show --vault <directory> kb:engineering:idempotent-operations` to read a note with its provenance, applicability, Git commit, and blob ID. Both commands accept `--commit <full-sha>`. Keep restricted notes in separately access-controlled repositories. Vault results are reference material, and task intake does not load them automatically.
+
 ## Workflow
 
 AEW uses four adaptive task profiles:

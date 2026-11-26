@@ -179,19 +179,62 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _vault(argv: list[str]) -> int:
+    from dataclasses import asdict
+
     from engine.brain.vault import load_vault
 
     parser = argparse.ArgumentParser(prog="aew-task vault")
-    parser.add_argument("action", choices=["validate"])
-    parser.add_argument("--vault", type=Path, required=True)
-    parser.add_argument("--commit", help="Full local commit ID (default: HEAD)")
+    commands = parser.add_subparsers(dest="action", required=True)
+    for action in ("validate", "search", "show"):
+        command = commands.add_parser(action)
+        command.add_argument("--vault", type=Path, required=True)
+        command.add_argument("--commit", help="Full local commit ID (default: HEAD)")
+        if action == "search":
+            command.add_argument("--query", default="", help="Words to match in notes")
+        if action == "show":
+            command.add_argument("id", help="Stable knowledge ID")
     args = parser.parse_args(argv)
     try:
         vault = load_vault(args.vault, args.commit)
     except (GitError, OSError, ValueError) as error:
+        message = (
+            str(error)
+            if args.action == "validate"
+            else "Unable to load vault. Run vault validate for details."
+        )
+        print(json.dumps({"error": message}), file=sys.stderr)
+        return 1
+    try:
+        result: dict[str, Any] = {"commit": vault.commit}
+        if args.action == "validate":
+            result["documents"] = len(vault.documents)
+        elif args.action == "search":
+            result["documents"] = [
+                {
+                    "id": note.id,
+                    "title": note.title,
+                    "kind": note.kind,
+                    "blob": note.blob,
+                }
+                for note in vault.find(args.query)
+            ]
+        else:
+            note = vault.find(identifier=args.id)[0]
+            result["document"] = {
+                **asdict(note),
+                "created": note.created.isoformat(),
+                "updated": note.updated.isoformat(),
+                "sources": [
+                    {"type": kind, "value": value} for kind, value in note.sources
+                ],
+                "relations": [
+                    {"type": kind, "target": target} for kind, target in note.relations
+                ],
+            }
+    except ValueError as error:
         print(json.dumps({"error": str(error)}), file=sys.stderr)
         return 1
-    print(json.dumps({"commit": vault.commit, "documents": len(vault.documents)}))
+    print(json.dumps(result))
     return 0
 
 

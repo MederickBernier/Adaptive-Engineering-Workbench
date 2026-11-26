@@ -1,7 +1,7 @@
 """Validate a Git-backed Markdown knowledge vault at an immutable revision."""
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -62,6 +62,33 @@ class VaultDocument:
 class Vault:
     commit: str
     documents: tuple[VaultDocument, ...]
+
+    def find(
+        self, query: str = "", *, identifier: str | None = None
+    ) -> tuple[VaultDocument, ...]:
+        """Return active, shared notes and links to other retrievable notes."""
+        available = {
+            note.id: note
+            for note in self.documents
+            if note.status == "active" and note.visibility == "shared"
+        }
+        if identifier is not None and identifier not in available:
+            raise ValueError("No active shared note with that ID")
+        candidates = (
+            (available[identifier],) if identifier is not None else available.values()
+        )
+        terms = query.casefold().split()
+        matches = []
+        for note in candidates:
+            searchable = " ".join(
+                (note.id, note.title, note.kind, *note.applicability, note.body)
+            ).casefold()
+            if all(term in searchable for term in terms):
+                relations = tuple(
+                    link for link in note.relations if link[1] in available
+                )
+                matches.append(replace(note, relations=relations))
+        return tuple(sorted(matches, key=lambda note: note.id))
 
 
 def _text(value: object, field: str) -> str:
