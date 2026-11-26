@@ -112,6 +112,8 @@ Use `aew-task vault search --vault <directory> --query "retry operations"` to fi
 
 When `--vault` is omitted, vault commands use `vault.path` from the selected checkout's AEW configuration. The built-in path is `knowledge-vault` under the checkout root. Set `{"vault": {"path": "~/engineering-knowledge"}}` in your user configuration or override it in the project's `.aew/config.json`. Configured relative paths are relative to the checkout root. Use `--repository <checkout>` to select which checkout supplies configuration. An explicit `--vault` selects a directory directly, with relative paths interpreted from the current directory.
 
+Keep project-specific Markdown notes under `.aew/knowledge/`, alongside `.aew/config.json`. Commit and review these files with the project. Discovery includes references to committed notes in scoped task context, identified by path and Git blob. The references are provisional and apply only to the project. The live Project Brain database stays outside the checkout.
+
 ## Workflow
 
 AEW uses four adaptive task profiles:

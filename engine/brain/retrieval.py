@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 
+from engine.brain.discovery import PROJECT_NOTE
 from engine.brain.model import Assertion, Depth, KnowledgeKind, Revision, validate_path
 from engine.brain.store import ProjectBrain
 from engine.git.repository import GitRepository
@@ -103,6 +104,7 @@ def retrieve(
         item
         for item in snapshot.assertions
         if _within(item.region, region)
+        or item.relation == PROJECT_NOTE
         or (
             item.region == "."
             and item.kind == KnowledgeKind.DURABLE

@@ -11,6 +11,7 @@ from engine.brain.model import (
     Assertion,
     Depth,
     Evidence,
+    KnowledgeKind,
     Revision,
     Snapshot,
     Verification,
@@ -19,7 +20,9 @@ from engine.brain.model import (
 from engine.brain.store import ProjectBrain
 from engine.git.repository import GitRepository, GitTreeFile
 
-_DETECTOR_VERSION = 1
+_DETECTOR_VERSION = 2
+PROJECT_NOTE = "project_note"
+_PROJECT_KNOWLEDGE = ".aew/knowledge"
 
 _LANGUAGES = {
     ".c": "C",
@@ -185,6 +188,37 @@ def inspect_revision(
     """Collect committed observations without publishing them."""
     if revision.repository != repository.root.as_uri():
         raise ValueError("Discovery revision belongs to a different checkout")
+    return inspect_code(repository, revision, coverage) + project_notes(
+        repository, revision, coverage[0]
+    )
+
+
+def project_notes(
+    repository: GitRepository, revision: Revision, region: str
+) -> tuple[Assertion, ...]:
+    """Index committed project notes by their path and exact blob."""
+    return tuple(
+        Assertion(
+            revision,
+            "project",
+            PROJECT_NOTE,
+            file.path,
+            (
+                Evidence(
+                    f"git:blob:{file.oid}", "Committed project reference", file.path
+                ),
+            ),
+            region,
+            kind=KnowledgeKind.DURABLE,
+        )
+        for file in repository.committed_files(revision.commit, _PROJECT_KNOWLEDGE)
+        if file.path.lower().endswith(".md")
+    )
+
+
+def inspect_code(
+    repository: GitRepository, revision: Revision, coverage: tuple[str, ...]
+) -> tuple[Assertion, ...]:
     members: list[Assertion] = []
     for region in coverage:
         facts: dict[tuple[str, str, Depth], list[Evidence]] = {}

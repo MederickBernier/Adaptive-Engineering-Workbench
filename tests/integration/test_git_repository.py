@@ -204,6 +204,30 @@ def test_vault_cli_resolves_default_and_configured_paths(
     assert "vault.path" in capsys.readouterr().err
 
 
+def test_discovery_indexes_committed_project_notes_in_scoped_context(
+    repository, tmp_path
+):
+    notes = repository / ".aew" / "knowledge"
+    notes.mkdir(parents=True)
+    note = notes / "ownership.md"
+    note.write_text("# Project ownership\n", encoding="utf-8")
+    git(repository, "add", ".aew")
+    git(repository, "commit", "-m", "Add a project note")
+    note.write_text("# Uncommitted edit\n", encoding="utf-8")
+    (notes / "untracked.md").write_text("# Untracked\n", encoding="utf-8")
+    adapter = GitRepository(repository)
+    brain = ProjectBrain(tmp_path / "brain.sqlite3", repository.as_uri())
+    snapshot = discover(adapter, brain, regions=("src",))
+    view = retrieve(adapter, brain, snapshot.id, region="src/api")
+    (claim,) = view.current
+    assert claim.relation == "project_note"
+    assert claim.target == ".aew/knowledge/ownership.md"
+    assert claim.verification == Verification.PROVISIONAL
+    assert claim.evidence[0].reference == "git:blob:" + git(
+        repository, "rev-parse", "HEAD:.aew/knowledge/ownership.md"
+    )
+
+
 def test_vault_cli_retrieves_active_shared_notes_at_pinned_commit(repository, capsys):
     vault_path = repository / "vault"
     vault_path.mkdir()
@@ -1081,12 +1105,16 @@ def test_discovery_reuses_pinned_coverage_without_rescanning(
     )
     scan.assert_not_called()
     assert discover(adapter, brain, regions=("src",)).id != original.id
-    assert scan.call_count == 1
+    assert [call.args[1] for call in scan.call_args_list] == ["src", ".aew/knowledge"]
     (repository / "new.py").write_text("answer = 42", encoding="utf-8")
     git(repository, "add", ".")
     git(repository, "commit", "-m", "Change committed discovery input")
     assert discover(adapter, brain, regions=(".", "src")).revision != original.revision
-    assert scan.call_count == 3
+    assert [call.args[1] for call in scan.call_args_list[2:]] == [
+        ".",
+        "src",
+        ".aew/knowledge",
+    ]
 
 
 def test_config_show_is_read_only_and_reports_setting_sources(
