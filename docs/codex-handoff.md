@@ -2,11 +2,57 @@
 # Codex Implementation Handoff
 
 **Document:** `docs/codex-handoff.md`  
-**Version:** 0.1.0  
-**Architecture baseline:** AEW v0.1  
-**Status:** Initial implementation handoff  
-**Last updated:** 2026-11-22  
-**Initial authorized milestone:** M0 — Repository Bootstrap and Verification Baseline
+**Version:** 0.1.1
+
+**Architecture baseline:** AEW v0.1 with accepted orchestration extension
+
+**Status:** Documentation acceptance and alignment
+
+**Last updated:** 2026-11-26
+
+**Historical initial milestone:** M0 — Repository Bootstrap and Verification Baseline
+
+---
+
+## 0. Current Assignment and Milestone State
+
+### 0.1 Authorized documentation Work Unit
+
+The engineer accepted ADR-013 through ADR-017 on 2026-11-26 and authorized documentation updates to record that acceptance and align the architecture, roadmap, ADR registry, and this handoff. Authorized edits are limited to Markdown documentation. Completion requires consistency, local-link, file-scope, and historical-evidence preservation checks and a proposed commit description.
+
+The accepted ADRs govern future design and implementation. Future runtime, schema, dependency, and execution changes require a separately assigned Work Unit with applicable contract review and authorization.
+
+### 0.2 Completed baseline and historical material
+
+The [roadmap](implementation-roadmap.md) records the completed M0–M8 sequence and its observed limitations.
+
+| Milestones | Recorded status |
+|---|---|
+| M0–M4 | Verified |
+| M5 | Verified for isolated execution |
+| M6 | Verified for delivery preparation |
+| M7 | Verified for the local workflow |
+| M8 | Verified for the local pilot |
+
+External adoption and other verification gaps retain their individual recorded status. Sections 4–16 preserve historical initial-handoff procedures and the M0 verification record. Section 16 contains the historical M0 kickoff. The current assignment is defined in section 0.1.
+
+### 0.3 Future implementation entry point
+
+The next planned implementation milestone is M9 — Delegation Contracts and Sandbox Eligibility, followed by M10 — Specialist Runtime and Result Packages, M11 — Adaptive Orchestration and Hierarchical Budgets, M12 — Controlled Reconciliation and Integration, and M13 — Multi-Agent Hardening and Pilot Evaluation. Scope and exit criteria are in roadmap section 22.
+
+After a separate M9 assignment, begin with repository and consumer inventory, compatibility and migration review of existing contracts, and a bounded runtime-evidence approval design. Review breaking schema changes with the engineer before implementation. Preserve the existing milestone evidence and supported behavior of current callers.
+
+### 0.4 Accepted extension requirements
+
+- Route every specialist launch, including provider-native subagents, through the engine. Use versioned roles and composable specialization labels with immutable assignment bindings.
+- Require explicit delegation permission, validated child authority records, and permission intersections with parent authority, profile, assignment, runtime, and policy.
+- Admit runtimes using versioned isolation capabilities, observed verification evidence, and a trusted evidence approval record. Withdrawal blocks affected operations and triggers evidence reassessment.
+- Enforce finite resource, concurrent-agent, and cumulative launch limits. Failed provisioning and fresh replacement attempts consume launch allowance. Duplicate request delivery counts once. Live or uncertain runtimes retain concurrent reservations until termination is established.
+- Validate the complete combined diff, including integration-generated changes, before verification or review and again before application. Successful required checks and accepted required reviews bind to the exact immutable candidate.
+- Give reviewers and verifiers candidate-specific immutable context with explicit rebinding on observation changes. Establish applicability to the actual target commit before publishing candidate findings as current committed-revision knowledge.
+- Apply a reviewed candidate only with current application authorization, preflight, workspace concurrency checks, and a confirmed resulting change boundary. Preserve unrelated changes and reconcile uncertain outcomes before retry.
+
+The current five schemas provide existing interfaces. New contracts, authority records, candidate bindings, and runtime eligibility controls are future implementation work governed by the accepted ADRs and M9 contract review.
 
 ---
 
@@ -19,7 +65,7 @@ It establishes:
 - The project's purpose and engineering philosophy.
 - The authoritative documentation and decision hierarchy.
 - The expected initial repository state.
-- The scope of Codex's first assignment.
+- The current documentation assignment and the retained initial implementation assignment.
 - The boundaries Codex must respect.
 - The verification evidence required.
 - The conditions under which implementation must stop for review.
@@ -28,7 +74,7 @@ This document is intended to be read alongside `AGENTS.md`, `docs/architecture.m
 
 It is not a replacement for those documents.
 
-**The initial objective is to establish a verified implementation baseline, not to implement the entire AEW platform.**
+The current objective is documentation acceptance and alignment of the orchestration extension. The original M0 objective and verification evidence remain part of the historical handoff.
 
 ---
 
@@ -66,6 +112,8 @@ The AI layer may propose actions.
 
 The engine must enforce the boundaries governing those actions.
 
+The accepted orchestration extension adds engine-mediated specialist assignments, versioned role profiles, verified sandbox eligibility, delegated authority records, and controlled integration of immutable result packages. Implementation follows the future M9–M13 sequence.
+
 ### 2.5 Initial implementation technology
 
 Python is the provisional implementation language for the current prototype.
@@ -101,7 +149,7 @@ Security-sensitive operations must satisfy all applicable policy and authorizati
 
 ### 3.2 Required documents
 
-Before beginning M0, inspect:
+Before beginning an assigned Work Unit, inspect:
 
 - `AGENTS.md`, if present.
 - `README.md`.
@@ -117,7 +165,7 @@ Do not assume missing documentation exists.
 
 ### 3.3 ADR availability and status
 
-The repository contains ADR-001 through ADR-012. ADR-003 through ADR-012 form the confirmed baseline. ADR-001 and ADR-002 require engineer confirmation because their headers and approval sections disagree. See the [ADR index](adr/README.MD).
+The repository contains ADR-001 through ADR-017. ADR-003 through ADR-012 form the confirmed original baseline. ADR-013 through ADR-017 were accepted on 2026-11-26 as the orchestration extension. ADR-001 and ADR-002 retain their pre-existing acceptance-history ambiguity. See the [ADR index](adr/README.MD).
 
 ### 3.4 Conflict handling
 
@@ -896,9 +944,9 @@ If any requirement remains unmet, M0 must be reported as partially verified or b
 
 ---
 
-## 16. Initial Codex Assignment
+## 16. Historical Initial Codex Assignment
 
-The following instruction may be used directly when starting the Codex implementation session.
+The following instruction records the original M0 kickoff for historical reference. The current assignment is in section 0.1.
 
 ### Assignment: AEW M0 — Bootstrap and Verification
 
@@ -947,7 +995,7 @@ This handoff is accepted for implementation when:
 - The implementation scope is understood.
 - Required permissions are established.
 - Codex can inspect the existing source.
-- M0 is confirmed as the initial milestone.
+- The engineer has explicitly assigned the selected documentation Work Unit or implementation milestone.
 
 This document does not itself constitute permission to modify files or publish repository changes.
 

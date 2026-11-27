@@ -2,10 +2,13 @@
 # Implementation Roadmap
 
 **Document:** `docs/implementation-roadmap.md`  
-**Document version:** 0.1.0  
-**Architecture baseline:** AEW v0.1  
-**Status:** Proposed implementation roadmap  
-**Last updated:** 2026-11-22
+**Document version:** 0.1.1
+
+**Architecture baseline:** AEW v0.1 with accepted orchestration extension
+
+**Status:** Accepted orchestration sequencing with future milestones Planned
+
+**Last updated:** 2026-11-26
 
 ---
 
@@ -20,6 +23,8 @@ The roadmap translates the approved architecture into executable development mil
 It is intended for human engineers and AI coding agents, including Codex.
 
 The roadmap must remain subordinate to the accepted Architecture Decision Records (ADRs) and the project's documented invariants.
+
+ADR-013 through ADR-017 were accepted on 2026-11-26. M0–M8 retain their existing names, completion statuses, evidence, and recorded limitations. M9–M13 extend the sequence for specialist execution and orchestration. The current assignment covers documentation acceptance and alignment. Each future implementation milestone requires a separate assignment.
 
 ### 1.1 Guiding principle
 
@@ -130,10 +135,13 @@ The following decisions govern the implementation roadmap.
 | ADR-010 | Controlled execution | M5 |
 | ADR-011 | Work Units and delivery | M4, M6 |
 | ADR-012 | Adaptive planning | M4 |
+| ADR-013 | Engine-mediated specialist launches and adaptive delegation | M10, M11 |
+| ADR-014 | Versioned roles and composable specialization | M9, M10 |
+| ADR-015 | Verified sandbox eligibility and evidence approval | M9, M13 |
+| ADR-016 | Delegated authority and aggregate governance | M9–M11 |
+| ADR-017 | Result packages and controlled candidate integration | M10, M12 |
 
-ADR-001 and ADR-002 are reserved for earlier architectural decisions that must be confirmed before their documentation is finalized.
-
-This roadmap must not invent or retroactively approve their contents.
+The pre-existing acceptance-history ambiguity for ADR-001 and ADR-002 is recorded in the ADR index and remains subject to engineer review.
 
 ---
 
@@ -150,10 +158,17 @@ This roadmap must not invent or retroactively approve their contents.
 | M6 | Verification and delivery preparation | M5 |
 | M7 | Integrated skill-driven workflow | M1–M6 |
 | M8 | Hardening and pilot adoption | M7 |
+| M9 | Delegation contracts and sandbox eligibility | M8 |
+| M10 | Specialist runtime and result packages | M9 |
+| M11 | Adaptive orchestration and hierarchical budgets | M10 |
+| M12 | Controlled reconciliation and integration | M11 |
+| M13 | Multi-agent hardening and pilot evaluation | M12 |
 
 Milestones define dependency order, not necessarily separate releases.
 
 Independent work may proceed concurrently where it does not compromise contracts or create unnecessary integration risk.
+
+The M0–M8 sections below preserve their historical verification records. Future M9–M13 scope and acceptance criteria are in section 22, with Planned status throughout.
 
 ---
 
@@ -1337,6 +1352,12 @@ The following dependencies must be preserved:
 - Guarded filesystem operations before AI-driven modifications.
 - Verification before claiming delivery readiness.
 - Publication authorization before Git publication.
+- Reviewed delegation contracts and trusted runtime evidence approval before specialist launch.
+- Explicit delegation permission and validated child authority before guarded specialist operations.
+- Atomic resource and agent-count admission before provisioning.
+- Final-candidate scope validation before verification or review, and revalidation before application.
+- Successful required verification and accepted required reviews for the exact candidate before application or delivery readiness.
+- Candidate-specific context validation before dependent verification and review, and committed-revision applicability validation before knowledge publication.
 
 ### 16.2 Parallel development
 
@@ -1384,24 +1405,13 @@ Milestone exit criteria are more important than calendar dates or version labels
 
 ---
 
-# 18. Immediate Implementation Backlog
+# 18. Current Boundary and Follow-on Backlog
 
-The next engineering actions, in priority order, are:
+The current documentation Work Unit accepts ADR-013 through ADR-017 and aligns the architecture, roadmap, and Codex handoff. Its completion evidence consists of documentation consistency, links, scope, and milestone-history preservation checks.
 
-1. Materialize and audit existing drafted source files.
-2. Establish project metadata and test dependencies.
-3. Execute the existing contract tests.
-4. Correct confirmed contract inconsistencies.
-5. Execute configuration and Git adapter tests.
-6. Harden Git porcelain parsing.
-7. Execute local preflight tests.
-8. Add GitHub client tests.
-9. Restrict GitHub CLI command execution.
-10. Implement remote/local baseline reconciliation.
-11. Build a complete read-only preflight report.
-12. Demonstrate the first end-to-end read-only workflow.
+The future engineering sequence begins with M9 after a separate assignment. Its first bounded work is to inventory existing consumers, review contract compatibility and migration requirements, define trusted runtime-evidence approval, and select a runtime configuration whose controls can be demonstrated. Subsequent work follows M10–M13 and their exit gates in section 22.
 
-No controlled execution or publication functionality should be added until the foundational safety and authorization requirements are ready.
+The original baseline backlog is represented by the delivered M0–M8 records. Existing limitations, including external adoption and the read-only Execution Contract correction, retain their recorded status until separately verified.
 
 ---
 
@@ -1480,7 +1490,7 @@ When using this roadmap in Codex:
 1. Read `AGENTS.md`, `docs/architecture.md`, and relevant accepted ADRs.
 2. Inspect the repository before making changes.
 3. Establish which files and capabilities actually exist.
-4. Begin with M0 unless a later milestone has already been verified.
+4. Follow the current assignment in the Codex handoff and consult completed milestone records before selecting future work.
 5. Implement one coherent vertical slice at a time.
 6. Run relevant tests after each change.
 7. Report blockers and contract inconsistencies explicitly.
@@ -1490,8 +1500,87 @@ When using this roadmap in Codex:
 11. Update documentation to match verified implementation behavior.
 12. Stop at the agreed milestone boundary and present evidence before proceeding.
 
-**Initial target: M0 — Repository Bootstrap and Verification Baseline.**
+**Current target:** complete documentation acceptance and alignment. Future implementation starts with a separately assigned M9 Work Unit and requires contract review and applicable authorization before restricted operations.
 
-The first implementation handoff should produce a verified baseline, a list of confirmed defects, and a proposed sequence for completing M1.
+# 22. Accepted Orchestration Extension — M9–M13
 
-Do not begin autonomous execution development as part of the initial handoff.
+This extension follows the completed M0–M8 sequence. Acceptance of its architecture establishes design authority. Implementation and verification evidence will be recorded under new Work Units after assignment.
+
+## M9 — Delegation Contracts and Sandbox Eligibility
+
+**Status:** Planned
+
+**Depends on:** M8 and the accepted ADR-013–ADR-017 extension
+
+Review Agent Profile, Agent Assignment, Sandbox, and Agent Result contracts, together with child authority records, versioned runtime capability descriptions, and trusted evidence approval records. Assess affected consumers of Task, Context, Approval, Execution, and Delivery, including explicit delegation permission, candidate-bound context and evidence, agent-count limits, and the application gate. Review compatibility, fixtures, migration needs, and any breaking changes with the engineer before schema changes.
+
+Establish a bounded runtime eligibility path using versioned capability descriptions, observed isolation evidence, and approval from a trusted engineer interface or policy mechanism. The existing M5 container evidence supplies baseline observations for reassessment against the selected configuration and threat model.
+
+The exit gate requires:
+
+- Reviewed contract representations with structural and semantic positive and negative fixtures, including the read-only delivery case where affected.
+- Observed eligibility decisions rejecting forged, withdrawn, expired, altered, and inapplicable approvals, with reassessment after configuration changes.
+- Isolation evidence for the selected runtime and operating environment, with provenance, limitations, and declared controls.
+- A migration and consumer impact record and a bounded M10 launch interface preserving current callers.
+
+## M10 — Specialist Runtime and Result Packages
+
+**Status:** Planned
+
+**Depends on:** M9
+
+Deliver one specialist assignment through the engine using a pinned role and profile, composable labels, explicit delegation permission, a validated child authority record, immutable context, and an eligible isolated runtime. Enforce finite resource and agent-count limits with atomic admission and durable accounting in this initial slice. Return an immutable result package through the engine. Include provisioning, cancellation, evidence retention, cleanup, and recovery outcomes.
+
+The exit gate requires:
+
+- An observed specialist launch and result through at least one supported adapter, with no equivalent unmediated specialist-launch capability exposed within its declared boundary.
+- Rejection of missing delegation permission, invalid authority chains, incompatible context, and unsupported required capabilities.
+- Rejection of missing or exhausted count limits and observed blocking of operations after authority revocation or runtime approval withdrawal.
+- Demonstrated workspace isolation and scoped writes, with read-only assignments producing findings and evidence without source modification.
+- Durable lifecycle and result records, idempotent request handling, and reported uncertain provisioning or termination outcomes.
+
+## M11 — Adaptive Orchestration and Hierarchical Budgets
+
+**Status:** Planned
+
+**Depends on:** M10
+
+Connect planning profiles to bounded specialist assignments. Support selected parallel investigation and verification, explicit dependencies, engine-mediated messages, and help requests. Enforce task and per-agent budgets together with finite concurrent-agent and total-launch limits. Recursive spawning remains disabled by default.
+
+The exit gate requires:
+
+- Quick work completing with one agent and justified delegation through Standard, Deep, and Explore scenarios within approved scope.
+- Concurrent admissions respecting both count limits and resource reservations, with failed provisioning and fresh retries consuming cumulative launch allowance and duplicate requests counted once.
+- Live suspended runtimes and uncertain termination retaining concurrent slots, with recovery preserving reservations and consumed resources.
+- Observed parent revocation and runtime approval withdrawal blocking affected operations, initiating lifecycle handling, and preserving evidence.
+
+## M12 — Controlled Reconciliation and Integration
+
+**Status:** Planned
+
+**Depends on:** M11
+
+Reconcile specialist result packages into an immutable combined candidate in an isolated environment. Record contribution dispositions and conflict resolutions. Validate the full diff, including integration-generated edits, before verification or review. Bind reviewer and verifier Context Packages to the candidate observation and validate explicit context transitions.
+
+The exit gate requires:
+
+- Rejection of tampered packages, incompatible baselines, unauthorized resolution edits, and mismatched candidate evidence, with conflicts and decisions retained.
+- Successful required checks and accepted required reviews for the exact candidate before the engine permits separately authorized checkout application or delivery readiness.
+- Observed detection of target drift, confirmation of resulting scoped content, and interruption recovery preserving unrelated changes and reconciling uncertain outcomes before retry.
+- Candidate findings retaining their observation identity until applicability to the actual committed revision is established, with coherent atomic snapshot publication.
+- One proposed commit per meaningful implementation Work Unit and separately enforced authorization for each publication operation.
+
+## M13 — Multi-Agent Hardening and Pilot Evaluation
+
+**Status:** Planned
+
+**Depends on:** M12
+
+Exercise the complete delegated workflow on supported runtimes and representative pilot projects. Extend the M8 reliability approach to isolation, concurrent assignments, authority withdrawal, resource exhaustion, result reconciliation, and application recovery.
+
+The exit gate requires:
+
+- Reproducible operating-system isolation and negative security evidence for each supported adapter configuration, with provider-native launch paths exercised where supported.
+- Concurrency and fault-injection evidence covering crashes, duplicate messages, cancellation failure, revocation, withdrawn runtime approval, exhausted budgets, and partial application.
+- Pilot observations for safety, evidence traceability, engineer intervention, and resource consumption, compared with a recorded baseline.
+- Explicit runtime limitations and unavailable checks, retained completed milestone evidence, and a reviewed readiness assessment for broader adoption.

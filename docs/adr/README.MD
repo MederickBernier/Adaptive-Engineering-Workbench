@@ -1,9 +1,12 @@
 # AEW — Architecture Decision Records
 
 **Document:** `docs/adr/README.md`  
-**Version:** 0.1.0  
-**Architecture baseline:** AEW v0.1  
-**Last updated:** 2026-11-22  
+**Version:** 0.1.1
+
+**Architecture baseline:** AEW v0.1 with accepted orchestration extension
+
+**Last updated:** 2026-11-26
+
 **Status:** Decision registry
 
 ---
@@ -72,7 +75,7 @@ Do not silently change an accepted ADR to match an implementation shortcut.
 
 ## 3. Decision Registry
 
-The following decisions form the current AEW v0.1 architectural baseline.
+The registry records the AEW v0.1 architectural baseline and the orchestration extension accepted on 2026-11-26. Implementation status and milestone evidence are maintained in the roadmap.
 
 | ID | Decision | Status | Document |
 |---|---|---|---|
@@ -88,10 +91,15 @@ The following decisions form the current AEW v0.1 architectural baseline.
 | ADR-010 | Controlled execution and checkpoints | Accepted | [ADR-010](ADR-010-controlled-execution.md) |
 | ADR-011 | Adaptive Work Units and delivery | Accepted | [ADR-011](ADR-011-work-units-and-delivery.md) |
 | ADR-012 | Adaptive planning and event-driven approval | Accepted | [ADR-012](ADR-012-adaptive-planning.md) |
+| ADR-013 | Adaptive multi-agent orchestration | Accepted | [ADR-013](ADR-013-adaptive-multi-agent-orchestration.md) |
+| ADR-014 | Composable agent profiles and specialization | Accepted | [ADR-014](ADR-014-composable-agent-profiles.md) |
+| ADR-015 | Sandbox isolation and execution environments | Accepted | [ADR-015](ADR-015-sandbox-isolation.md) |
+| ADR-016 | Agent coordination and delegated authority | Accepted | [ADR-016](ADR-016-coordination-and-delegated-authority.md) |
+| ADR-017 | Agent result reconciliation and controlled integration | Accepted | [ADR-017](ADR-017-result-reconciliation-and-integration.md) |
 
 **Registry convention:** An accepted decision and a completed ADR document are different things.
 
-All twelve records are present. ADR-001 and ADR-002 carry Accepted headers, while their approval sections still call for engineer confirmation. The registry status remains Unconfirmed pending that review.
+All seventeen records are present. ADR-013 through ADR-017 were explicitly accepted by the engineer on 2026-11-26. The pre-existing acceptance-history ambiguity for ADR-001 and ADR-002 remains recorded in section 11.
 
 ---
 
@@ -175,6 +183,28 @@ Approvals are scoped to relevant actions and plan revisions.
 
 ---
 
+### ADR-013 — Adaptive Multi-Agent Orchestration
+
+Every specialist launch, including provider-native subagents, passes through engine validation. Delegation follows planning needs and finite task budgets and agent-count limits.
+
+### ADR-014 — Composable Agent Profiles
+
+Versioned roles compose with evidence-backed specialization labels. Assignments pin profile revisions, and candidate review requires explicit context binding.
+
+### ADR-015 — Sandbox Isolation
+
+Runtime eligibility requires versioned isolation capabilities, verification evidence, and a trusted approval record. Approval withdrawal blocks affected execution and triggers reassessment of dependent evidence.
+
+### ADR-016 — Coordination and Delegated Authority
+
+Trusted authorization explicitly permits delegation. The engine validates traceable child authority records and enforces permission intersections, launch accounting, revocation, and recovery.
+
+### ADR-017 — Result Reconciliation and Controlled Integration
+
+Immutable result packages feed a combined candidate. Full-diff scope checks, successful required verification, and accepted required reviews bind application to the exact candidate. Candidate findings retain revision provenance through knowledge reconciliation.
+
+---
+
 ## 5. Decision Relationships
 
 ADRs are related, but they do not form a simple linear dependency chain.
@@ -245,6 +275,10 @@ Planning determines Work Units and authorization requirements.
 Execution and delivery must remain bound to the approved plan.
 
 These diagrams describe conceptual dependencies, not mandatory module imports or runtime call graphs.
+
+### 5.4 Accepted orchestration extension
+
+ADR-013 uses ADR-012's planning profiles. ADR-014 defines specialist profiles. ADR-015 and ADR-016 extend ADR-010's isolation and authority controls. ADR-017 reconciles results under ADR-003, ADR-004, ADR-009, and ADR-011. The engine validates specialist launches, authority, runtime eligibility, and final candidate application throughout this path.
 
 ---
 
@@ -395,6 +429,13 @@ The following table identifies the principal contract relationships.
 | ADR-010 | Approval, Execution |
 | ADR-011 | Task, Execution, Delivery |
 | ADR-012 | Task, Approval, Execution |
+| ADR-013 | Task, Approval, Execution, Agent Assignment |
+| ADR-014 | Agent Profile, Agent Assignment, Context |
+| ADR-015 | Sandbox, runtime capability and evidence approval records, Execution |
+| ADR-016 | Approval, Execution, Agent Assignment, child authority records |
+| ADR-017 | Agent Result, Context, Approval, Execution, Delivery |
+
+Agent Profile, Agent Assignment, Sandbox, Agent Result, and the supporting authority and runtime records are future contract work. Their structures and compatibility with the five existing schemas require review in M9.
 
 These relationships are not exhaustive.
 
@@ -418,6 +459,11 @@ When changing a contract, review all applicable ADRs rather than only the most o
 | ADR-010 | M5 — Controlled execution |
 | ADR-011 | M4 — Work Units; M6 — Delivery |
 | ADR-012 | M4 — Adaptive planning |
+| ADR-013 | M10 — Specialist launch; M11 — Adaptive orchestration |
+| ADR-014 | M9 — Contracts; M10 — Specialist runtime |
+| ADR-015 | M9 — Sandbox eligibility; M13 — Isolation hardening |
+| ADR-016 | M9 — Authority contracts; M10 — Child authority; M11 — Aggregate governance |
+| ADR-017 | M10 — Result packages; M12 — Controlled integration |
 
 See `docs/implementation-roadmap.md` for complete milestones, dependencies, and acceptance criteria.
 

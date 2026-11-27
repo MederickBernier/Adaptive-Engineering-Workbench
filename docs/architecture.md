@@ -1,9 +1,15 @@
 
 # Adaptive Engineering Workbench (AEW)
-## Architecture Specification v0.1
+## Architecture Specification — v0.1 and Accepted Orchestration Extension
 
-**Status:** Approved architecture baseline; repository reference (v0.1)  
-**Baseline:** v0.1 (2026-11-21)  
+**Status:** Approved v0.1 baseline with accepted orchestration extension
+
+**Baseline:** v0.1 (2026-11-21), extended by ADR-013 through ADR-017 on 2026-11-26
+
+**Document version:** 0.1.1
+
+**Last updated:** 2026-11-26
+
 **Audience:** Maintainers, developers, AI integration implementers, reviewers  
 **Canonical format:** Markdown in version control
 
@@ -16,6 +22,8 @@ AEW is a local-first, human-governed engineering workbench supporting small bug 
 **Primary MVP scenario:** Given a GitHub issue or natural-language task, AEW identifies the repository and relevant knowledge, performs read-only preflight, proposes proportional planning, obtains scoped authorization, supports implementation and verification, prepares a commit proposal for each completed Work Unit, and prepares a PR title/body **without staging, committing, pushing, opening a PR, or merging by default**.
 
 **Non-goals for v0.1:** autonomous deployment/merge, distributed knowledge services, cross-repository graph federation, vector search, full Obsidian synchronization, complex patch queues, and multi-agent orchestration.
+
+The accepted post-v0.1 orchestration design is consolidated in section 20. Its implementation is planned after the recorded M0–M8 milestone history. The current assignment covers documentation acceptance and alignment.
 
 ## 2. Architectural principles
 
@@ -42,6 +50,11 @@ AEW is a local-first, human-governed engineering workbench supporting small bug 
 | 010 | Scoped Execution Envelope and evidence-backed verification | Approved, reviewed version |
 | 011 | Work Units, commit proposals, and PR delivery | Approved |
 | 012 | Adaptive planning and event-driven approval | Approved |
+| 013 | Adaptive multi-agent orchestration | Accepted 2026-11-26 |
+| 014 | Composable agent profiles and specialization | Accepted 2026-11-26 |
+| 015 | Sandbox isolation and execution environments | Accepted 2026-11-26 |
+| 016 | Agent coordination and delegated authority | Accepted 2026-11-26 |
+| 017 | Agent result reconciliation and controlled integration | Accepted 2026-11-26 |
 
 Additional approved foundations: one SQLite-backed Project Brain per project; assertion-based knowledge graph; logical separation of durable and derived knowledge; Git-backed Obsidian-compatible Markdown knowledge vault with stable IDs, typed relations, provenance, visibility boundaries, and provisional AI inferences.
 
@@ -77,6 +90,8 @@ These are **logical responsibilities**, not mandatory microservices or processes
 - **Context Service:** Produce compact or detailed immutable Context Packages with freshness, authority, evidence, and uncertainty.
 - **Policy & Execution:** Enforce grants and tool scopes; guard writes; run checks; record progress; suspend on boundary violations.
 - **Delivery Coordinator:** Prepare reviewable per-Work-Unit commit title/body and exact scope; draft PR title/body; verify actual Git/PR state.
+
+The accepted extension adds an orchestrator that proposes specialist assignments, runtime adapters that provision isolated environments through the engine, and an integration controller that reconciles result packages. These remain logical responsibilities within the local application. Their detailed enforcement requirements are in section 20.
 
 ## 5. Knowledge architecture
 
@@ -185,7 +200,7 @@ Verification must be measured against approved acceptance criteria and existing 
 
 Every completed implementation Work Unit yields a **proposed commit** with title, body, exact files/hunks or identifiable change scope, verification evidence, and limitations. Conventional Commits is a configurable recommendation, not a universal standard.
 
-**Default: prepare only.** No staging, committing, pushing, PR creation, or merging unless separately authorized or configured within repository policy. PR title/body are prepared from actual changes and recorded verification. Use issue-closing keywords only when the PR resolves the entire issue.
+**Default: prepare only.** Staging, committing, pushing, PR creation, and merging each require valid scoped authorization under repository policy. PR title/body are prepared from actual changes and recorded verification. Use issue-closing keywords only when the PR resolves the entire issue.
 
 For v0.1, use **sequential commit checkpoints**: complete and verify Work Unit A, present its proposed commit, wait for developer commit (or separately authorized commit), confirm Git boundary, then begin Work Unit B. This avoids mingling uncommitted changes. More complex patch queues are deferred.
 
@@ -279,7 +294,7 @@ Branch creation occurs only after its separate authorization and verified integr
 
 **Defer:** embeddings, distributed brain, full vault sync, multi-agent orchestration, automated merge/deploy, cross-repository graph federation, patch queues, real-time collaborative editing, autonomous knowledge promotion.
 
-The [implementation roadmap](implementation-roadmap.md) defines the active M0–M8 sequence and records evidence at each exit gate. It supersedes the initial M0–M5 scheduling table in this specification.
+The [implementation roadmap](implementation-roadmap.md) preserves the M0–M8 sequence and its recorded exit-gate evidence. M9–M13 extend that sequence for the accepted orchestration architecture. Each future implementation milestone requires a separate assignment.
 
 ## 16. MVP acceptance tests
 
@@ -324,6 +339,8 @@ JSON Schema validates structure; cross-contract references, authenticity of appr
 
 The local Python prototype implements revision-scoped Project Brain storage, task intake and planning, Git preflight, guarded isolated execution, and delivery preparation. GitHub coordination is covered by mocked adapter tests and authenticated live verification recorded under M1 in the roadmap. Shared-checkout promotion and publication require separate authorization.
 
+The accepted extension requires future Agent Profile, Agent Assignment, Sandbox, and Agent Result contracts, plus runtime capability descriptions, trusted evidence approval records, and traceable child authority records. M9 must review their representations and compatibility with the existing Task, Context, Approval, Execution, and Delivery schemas, including explicit delegation permission and candidate-bound evidence. Structural validation, semantic consistency, and trusted runtime authority remain separate checks.
+
 ## 19. Documentation maintenance and change control
 
 - `README.md` is the entry point for project purpose, current capability, onboarding, and roadmap.
@@ -334,4 +351,46 @@ The local Python prototype implements revision-scoped Project Brain storage, tas
 - Contract amendments require an explicit decision and impact review; ordinary implementation refinements that preserve approved invariants do not.
 - Validate examples against schemas and tests as soon as the validation harness exists.
 
-**Next engineering artifact:** a minimal v0.1.0 read-only task fixture and schema validation test, followed by the engine adapter boundary for Git/GitHub preflight.
+**Current handoff:** documentation acceptance and alignment under the [Codex handoff](codex-handoff.md). Future implementation begins with the bounded M9 contract and runtime-eligibility work after a separate assignment.
+
+## 20. Accepted Orchestration Extension (ADR-013–ADR-017)
+
+### 20.1 Adaptive delegation and profiles
+
+Every specialist launch, including a provider-native subagent, passes through the AEW engine. The orchestrator proposes bounded assignments. Specialists can request help through the orchestrator. Recursive spawning is disabled by default. A provider must support enforcement of the engine's launch and isolation boundaries to be eligible.
+
+Quick normally uses one agent. Standard delegates selected bounded work. Deep can parallelize independent assignments and independent verification. Explore supports parallel read-only investigation. These choices remain subject to trusted authorization and task limits.
+
+Versioned roles define responsibility, deliverables, capability limits, and restrictions. Composable specialization labels guide expertise and context selection using project evidence and engineer input. Assignments pin role and profile revisions and record the basis for selected labels. Specializations cannot expand permissions.
+
+### 20.2 Isolation and runtime eligibility
+
+Each specialist receives a dedicated baseline-derived workspace, process isolation, scoped authority, and an immutable Context Package. Runtime controls protect the primary checkout, other assignments, credentials, and engine state. Worktrees may separate workspaces when shared Git metadata is protected by the process boundary. Runtime eligibility depends on demonstrated controls within a declared threat model.
+
+Every adapter provides versioned isolation capabilities and verification evidence. The engine requires a trusted evidence approval record binding the approved versions, environment, configuration, evidence, and validity constraints. It validates authenticity, integrity, applicability, and current approval before provisioning, guarded operations, and resumption. Withdrawal blocks affected execution and triggers reassessment of dependent verification and review evidence.
+
+Network access is denied by default. Approved access is bounded, and provider inference traffic uses the trusted provider adapter. Writable storage and credentials are assignment-scoped. Engine keys, authorization stores, and runtime administration remain under trusted host control. Cancellation, cleanup, and failures retain execution evidence and follow the runtime's demonstrated controls.
+
+### 20.3 Delegated authority and resource governance
+
+Trusted authorization must explicitly permit delegation. The engine validates traceable child authority records against current parent authority. Effective permissions intersect parent authority, role and profile limits, assignment scope, runtime capabilities, and policy. Protected paths and denials take precedence. Parent suspension, expiration, or revocation prevents further child operations and triggers lifecycle handling.
+
+Assignments bind task, plan revision, Work Unit, baseline, Context Package, profile, sandbox, and runtime evidence. Engine-mediated messages retain identity and provenance. Dependent assignments validate result and context applicability before execution.
+
+Finite concurrent-agent and total-launch limits supplement task and per-agent resource budgets. Admission atomically reserves a concurrent slot and consumes a cumulative launch allowance. Failed provisioning, replacements, and fresh provisioning retries consume that allowance. Duplicate delivery of the same request counts once. Live suspended runtimes and uncertain termination retain their concurrent slots. Recovery preserves counts and consumed budgets.
+
+### 20.4 Results, context, and controlled application
+
+Specialists return immutable, integrity-verifiable result packages with assignment provenance, applicable patches, findings, evidence, outcomes, and limitations. The engine records accepted, rejected, deferred, and superseded contributions. Conflicts remain traceable through reconciliation.
+
+The integration controller validates the complete combined diff, including resolution edits, against current scope and protected paths before freezing the candidate for verification or review. Candidate content changes create a new identity and repeat validation. Verification runs in isolated materializations. Required checks must pass and required reviews must be accepted for that exact candidate, including human acceptance where required by the plan or policy.
+
+Reviewer and verifier context identifies the baseline commit, source Brain snapshot, candidate identity, and workspace fingerprint. Adopting another observation requires a successor immutable package and explicit context-transition validation under ADR-009. Only applicable assertions can be presented as current candidate facts.
+
+Before checkout application, the engine validates the candidate-bound verification and review gate, application authorization, current preflight, final diff, baseline, workspace observations, and concurrency protections. Missing, failed, incomplete, rejected, or stale required outcomes block application and delivery readiness. It confirms the applied boundary and scoped content before recording success. Recovery preserves unrelated changes and reconciles uncertain outcomes before retrying.
+
+Candidate findings retain candidate provenance. Inclusion as current knowledge in a committed-revision snapshot requires a recorded applicability decision for the actual target commit. Snapshot publication remains atomic and published assertions remain immutable. One proposed commit per meaningful implementation Work Unit remains the delivery default, with each publication operation separately authorized.
+
+### 20.5 Implementation sequence and evidence
+
+M9 establishes reviewed contracts and runtime eligibility. M10 delivers a bounded specialist runtime and result packages. M11 adds adaptive orchestration and aggregate governance. M12 delivers controlled reconciliation and application. M13 verifies isolation, concurrency, recovery, and pilot behavior. These milestones are Planned and require future implementation and observed verification before capability claims can be made.
