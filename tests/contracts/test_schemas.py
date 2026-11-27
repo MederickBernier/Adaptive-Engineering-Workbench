@@ -31,6 +31,8 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import SchemaError
 
+from contracts.validation import EXTENSION_CONTRACTS, schema_registry
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 CONTRACTS_DIR = PROJECT_ROOT / "contracts"
@@ -44,7 +46,10 @@ SCHEMA_FILES = (
     "delivery.schema.json",
 )
 
-SCHEMA_PATHS = tuple(CONTRACTS_DIR / filename for filename in SCHEMA_FILES)
+SCHEMA_PATHS = tuple(CONTRACTS_DIR / filename for filename in SCHEMA_FILES) + tuple(
+    CONTRACTS_DIR / "v0.2" / f"{name}.schema.json" for name in EXTENSION_CONTRACTS
+)
+ALL_SCHEMA_PATHS = (*SCHEMA_PATHS, CONTRACTS_DIR / "v0.2/common.schema.json")
 
 
 def load_json(path: Path) -> Any:
@@ -79,13 +84,14 @@ def discover_fixtures(
     contract: str,
     *,
     invalid: bool,
+    directory: Path = EXAMPLES_DIR,
 ) -> list[Path]:
     """Discover fixtures for a particular contract."""
 
-    if not EXAMPLES_DIR.is_dir():
+    if not directory.is_dir():
         return []
 
-    fixtures = sorted(EXAMPLES_DIR.glob(f"{contract}.*.json"))
+    fixtures = sorted(directory.glob(f"{contract}.*.json"))
 
     if invalid:
         return [path for path in fixtures if ".invalid-" in path.name]
@@ -95,8 +101,8 @@ def discover_fixtures(
 
 @pytest.mark.parametrize(
     "schema_path",
-    SCHEMA_PATHS,
-    ids=lambda path: path.name,
+    ALL_SCHEMA_PATHS,
+    ids=lambda path: f"{path.parent.name}/{path.name}",
 )
 def test_schema_is_valid(schema_path: Path) -> None:
     """Each schema must be a valid Draft 2020-12 schema."""
@@ -128,6 +134,7 @@ def test_positive_fixtures(schema_path: Path) -> None:
     fixtures = discover_fixtures(
         contract,
         invalid=False,
+        directory=schema_path.parent / "examples",
     )
 
     assert fixtures, (
@@ -136,7 +143,7 @@ def test_positive_fixtures(schema_path: Path) -> None:
     )
 
     schema = load_json(schema_path)
-    validator = Draft202012Validator(schema)
+    validator = Draft202012Validator(schema, registry=schema_registry())
 
     for fixture_path in fixtures:
         instance = load_json(fixture_path)
@@ -170,13 +177,17 @@ def test_negative_fixtures(schema_path: Path) -> None:
     fixtures = discover_fixtures(
         contract,
         invalid=True,
+        directory=schema_path.parent / "examples",
     )
 
     if not fixtures:
+        assert schema_path.parent == CONTRACTS_DIR, (
+            "Every 0.2 contract needs negative fixtures"
+        )
         pytest.skip(f"No negative fixtures defined for {contract}")
 
     schema = load_json(schema_path)
-    validator = Draft202012Validator(schema)
+    validator = Draft202012Validator(schema, registry=schema_registry())
 
     for fixture_path in fixtures:
         instance = load_json(fixture_path)
@@ -191,7 +202,7 @@ def test_schema_identifiers_are_unique() -> None:
 
     identifiers: set[str] = set()
 
-    for schema_path in SCHEMA_PATHS:
+    for schema_path in ALL_SCHEMA_PATHS:
         assert schema_path.is_file()
 
         schema = load_json(schema_path)
@@ -213,11 +224,12 @@ def test_fixture_names_reference_known_contracts() -> None:
     if not EXAMPLES_DIR.is_dir():
         return
 
-    known_contracts = {schema_name(path) for path in SCHEMA_PATHS}
-
-    for fixture_path in EXAMPLES_DIR.glob("*.json"):
-        contract = fixture_path.name.split(".", 1)[0]
-
-        assert contract in known_contracts, (
-            f"Unknown contract fixture: {fixture_path.name}"
-        )
+    for directory in (CONTRACTS_DIR, CONTRACTS_DIR / "v0.2"):
+        known_contracts = {
+            schema_name(path) for path in SCHEMA_PATHS if path.parent == directory
+        }
+        for fixture_path in (directory / "examples").glob("*.json"):
+            contract = fixture_path.name.split(".", 1)[0]
+            assert contract in known_contracts, (
+                f"Unknown contract fixture: {fixture_path.name}"
+            )

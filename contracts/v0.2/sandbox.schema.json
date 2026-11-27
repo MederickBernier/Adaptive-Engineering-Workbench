@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/sandbox.schema.json",
+  "title": "AEW 0.2 Sandbox",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "sandbox_id",
+    "configuration_digest",
+    "adapter_id",
+    "adapter_version",
+    "runtime_id",
+    "runtime_version",
+    "image",
+    "environment",
+    "repository",
+    "observation",
+    "writable_paths",
+    "mounts",
+    "privileged",
+    "host_runtime_socket",
+    "network",
+    "resources",
+    "required_controls",
+    "capability_id",
+    "runtime_approval_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "sandbox_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "configuration_digest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "adapter_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "image": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "environment": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/environment"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "observation": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/observation"
+    },
+    "writable_paths": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/paths"
+    },
+    "mounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "target",
+          "read_only"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "target": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/path"
+          },
+          "read_only": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "privileged": {
+      "const": false
+    },
+    "host_runtime_socket": {
+      "const": false
+    },
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "destinations"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "denied",
+            "allowlist"
+          ]
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu_millicores",
+        "memory_bytes",
+        "max_processes",
+        "scratch_bytes",
+        "output_bytes"
+      ],
+      "properties": {
+        "cpu_millicores": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "memory_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_processes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scratch_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "required_controls": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "repository_isolation",
+          "process_isolation",
+          "authority_isolation",
+          "context_isolation",
+          "network_deny",
+          "network_allowlist",
+          "resource_limits",
+          "descendant_termination"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "capability_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_approval_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "network"
+        ],
+        "properties": {
+          "network": {
+            "properties": {
+              "mode": {
+                "const": "denied"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "network": {
+            "properties": {
+              "destinations": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "network"
+        ],
+        "properties": {
+          "network": {
+            "properties": {
+              "mode": {
+                "const": "allowlist"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "network": {
+            "properties": {
+              "destinations": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

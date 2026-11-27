@@ -1,0 +1,695 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/delivery.schema.json",
+  "title": "AEW Delivery Contract 0.2",
+  "description": "AEW 0.2 delivery wire contract. Runtime authority requires trusted engine validation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "delivery_id",
+    "task_id",
+    "repository",
+    "plan_revision",
+    "work_units",
+    "pull_request",
+    "publication"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "delivery_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "work_units": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workUnitDelivery"
+      },
+      "default": []
+    },
+    "pull_request": {
+      "$ref": "#/$defs/pullRequest"
+    },
+    "publication": {
+      "$ref": "#/$defs/publication"
+    },
+    "candidate_manifest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate_manifest"
+    }
+  },
+  "$defs": {
+    "workUnitDelivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_unit_id",
+        "status",
+        "change_boundary",
+        "verification",
+        "outcome_kind"
+      ],
+      "properties": {
+        "work_unit_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "not_ready",
+            "commit_proposed",
+            "awaiting_commit",
+            "committed",
+            "findings_ready"
+          ]
+        },
+        "commit_proposal": {
+          "$ref": "#/$defs/commitProposal"
+        },
+        "change_boundary": {
+          "$ref": "#/$defs/changeBoundary"
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificationReference"
+          }
+        },
+        "commit": {
+          "$ref": "#/$defs/commitRecord"
+        },
+        "outcome_kind": {
+          "enum": [
+            "implementation",
+            "read_only"
+          ]
+        },
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        },
+        "requirements": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/requirements"
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/review"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "application": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "not_requested",
+                "pending",
+                "applied",
+                "failed",
+                "uncertain"
+              ]
+            },
+            "grant_id": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "candidate": {
+              "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+            },
+            "evidence_id": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "applied"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "required": [
+                  "grant_id",
+                  "candidate",
+                  "evidence_id"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "outcome_kind"
+            ],
+            "properties": {
+              "outcome_kind": {
+                "const": "implementation"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "commit_proposal"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "outcome_kind"
+            ],
+            "properties": {
+              "outcome_kind": {
+                "const": "read_only"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_ready",
+                  "findings_ready"
+                ]
+              },
+              "change_boundary": {
+                "properties": {
+                  "files": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "commit_proposal"
+                  ]
+                },
+                {
+                  "required": [
+                    "commit"
+                  ]
+                },
+                {
+                  "required": [
+                    "application"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "candidate"
+            ],
+            "properties": {}
+          },
+          "then": {
+            "required": [
+              "requirements",
+              "reviews"
+            ],
+            "properties": {
+              "verification": {
+                "items": {
+                  "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/verification"
+                }
+              },
+              "change_boundary": {
+                "required": [
+                  "workspace_fingerprint"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "commit_proposed",
+                  "awaiting_commit",
+                  "committed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "candidate",
+              "requirements",
+              "reviews"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "application"
+            ]
+          },
+          "then": {
+            "required": [
+              "candidate",
+              "requirements",
+              "reviews"
+            ]
+          }
+        }
+      ]
+    },
+    "commitProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "body",
+        "format"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "body": {
+          "type": "string"
+        },
+        "format": {
+          "enum": [
+            "conventional",
+            "repository",
+            "custom"
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "changeBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_commit",
+        "files",
+        "separation"
+      ],
+      "properties": {
+        "base_commit": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/changedFile"
+          }
+        },
+        "separation": {
+          "enum": [
+            "sequential_checkpoint",
+            "isolated_patch",
+            "verified_commit"
+          ]
+        },
+        "workspace_fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "patch_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "changedFile": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/changed_file"
+    },
+    "verificationReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "execution_id",
+        "status"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "incomplete"
+          ]
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        },
+        "requirements_digest": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+        },
+        "runtime_approval_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_at": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "candidate"
+            ]
+          },
+          "then": {
+            "required": [
+              "requirements_digest",
+              "runtime_approval_id",
+              "observed_at"
+            ]
+          }
+        }
+      ]
+    },
+    "commitRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sha",
+        "verified"
+      ],
+      "properties": {
+        "sha": {
+          "$ref": "#/$defs/gitObjectId"
+        },
+        "verified": {
+          "type": "boolean"
+        }
+      }
+    },
+    "pullRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_ready",
+            "proposed",
+            "open",
+            "merged",
+            "closed",
+            "not_requested"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "base_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "head_branch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "included_work_units": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "enum": [
+                  "proposed",
+                  "open",
+                  "merged",
+                  "closed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "title",
+              "body",
+              "base_branch",
+              "head_branch"
+            ]
+          }
+        }
+      ]
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage",
+        "commit",
+        "push",
+        "create_pr",
+        "merge"
+      ],
+      "properties": {
+        "stage": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "commit": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "push": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "create_pr": {
+          "$ref": "#/$defs/operationStatus"
+        },
+        "merge": {
+          "$ref": "#/$defs/operationStatus"
+        }
+      }
+    },
+    "operationStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_authorized",
+            "authorized",
+            "executed",
+            "failed"
+          ]
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_at": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "executed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "grant_id",
+              "evidence_id",
+              "executed_at"
+            ]
+          }
+        }
+      ]
+    },
+    "gitObjectId": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{40,64}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "work_units": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "outcome_kind": {
+                  "const": "read_only"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "work_units"
+        ]
+      },
+      "then": {
+        "properties": {
+          "pull_request": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_requested",
+                  "not_ready"
+                ]
+              }
+            }
+          },
+          "publication": {
+            "properties": {
+              "stage": {
+                "properties": {
+                  "status": {
+                    "const": "not_authorized"
+                  }
+                }
+              },
+              "commit": {
+                "properties": {
+                  "status": {
+                    "const": "not_authorized"
+                  }
+                }
+              },
+              "push": {
+                "properties": {
+                  "status": {
+                    "const": "not_authorized"
+                  }
+                }
+              },
+              "create_pr": {
+                "properties": {
+                  "status": {
+                    "const": "not_authorized"
+                  }
+                }
+              },
+              "merge": {
+                "properties": {
+                  "status": {
+                    "const": "not_authorized"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

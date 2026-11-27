@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/runtime-capability.schema.json",
+  "title": "AEW 0.2 Runtime Capability",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capability_id",
+    "digest",
+    "adapter_id",
+    "adapter_version",
+    "runtime_id",
+    "runtime_version",
+    "image",
+    "environment",
+    "configuration_digest",
+    "threat_model",
+    "controls",
+    "limitations",
+    "evidence_references"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "capability_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "digest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "adapter_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "image": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "environment": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/environment"
+    },
+    "configuration_digest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "threat_model": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "repository_isolation",
+          "process_isolation",
+          "authority_isolation",
+          "context_isolation",
+          "network_deny",
+          "network_allowlist",
+          "resource_limits",
+          "descendant_termination"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "evidence_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reference",
+          "digest"
+        ],
+        "properties": {
+          "reference": {
+            "type": "string",
+            "minLength": 1
+          },
+          "digest": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+          }
+        }
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}

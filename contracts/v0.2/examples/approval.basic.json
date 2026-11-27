@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.2",
+  "grant_id": "grant-1",
+  "task_id": "task-1",
+  "plan_revision": 1,
+  "workspace": {
+    "repository": "example/repository",
+    "branch": "main",
+    "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_id": "workspace-1"
+  },
+  "status": "active",
+  "authorization": {
+    "operations": [
+      "delegate",
+      "investigate",
+      "implement",
+      "run_tests",
+      "review",
+      "apply_candidate"
+    ],
+    "delegation": {
+      "max_concurrent_agents": 2,
+      "max_total_agent_launches": 5,
+      "max_delegation_depth": 1
+    }
+  },
+  "scope": {
+    "allowed_paths": [
+      "src/**"
+    ],
+    "protected_paths": [
+      ".git/**",
+      "src/private/**"
+    ],
+    "work_unit_ids": [
+      "unit-1"
+    ]
+  },
+  "constraints": {
+    "preserve_unrelated_changes": true,
+    "allow_public_api_changes": false,
+    "allow_database_migrations": false,
+    "allow_new_dependencies": false,
+    "allow_destructive_operations": false
+  },
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "issuer_id": "trusted-host",
+  "record_purpose": "execution_authorization",
+  "proof": {
+    "algorithm": "hmac-sha256",
+    "domain": "aew-approval-v0.2",
+    "canonicalization": "aew-canonical-json-v1",
+    "key_id": "fictional-key",
+    "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "candidate": {
+    "candidate_id": "candidate-1",
+    "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1"
+  },
+  "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+  "resource_limits": {
+    "max_iterations": 5,
+    "max_tool_calls": 20,
+    "max_duration_seconds": 300
+  }
+}

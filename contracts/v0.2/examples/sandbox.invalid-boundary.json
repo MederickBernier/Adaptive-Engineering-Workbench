@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.2",
+  "sandbox_id": "sandbox-1",
+  "capability_id": "capability-1",
+  "configuration_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "adapter_id": "docker-local",
+  "adapter_version": "example-1",
+  "runtime_id": "docker",
+  "runtime_version": "example-version",
+  "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "environment": {
+    "os": "linux",
+    "os_version": "example-version",
+    "architecture": "x86_64"
+  },
+  "repository": "example/repository",
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1",
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "writable_paths": [
+    "src/**"
+  ],
+  "mounts": [],
+  "privileged": true,
+  "host_runtime_socket": false,
+  "network": {
+    "mode": "denied",
+    "destinations": []
+  },
+  "resources": {
+    "cpu_millicores": 1000,
+    "memory_bytes": 268435456,
+    "max_processes": 64,
+    "scratch_bytes": 16777216,
+    "output_bytes": 1048576
+  },
+  "required_controls": [
+    "repository_isolation",
+    "process_isolation",
+    "authority_isolation",
+    "context_isolation",
+    "network_deny",
+    "resource_limits",
+    "descendant_termination"
+  ],
+  "runtime_approval_id": "runtime-approval-1"
+}

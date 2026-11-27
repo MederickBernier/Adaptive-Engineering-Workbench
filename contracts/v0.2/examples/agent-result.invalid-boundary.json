@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.2",
+  "result_id": "result-1",
+  "assignment_id": "assignment-1",
+  "parent_execution_id": "parent-execution-1",
+  "task_id": "task-1",
+  "plan_revision": 1,
+  "work_unit_id": "unit-1",
+  "context_id": "context-1",
+  "snapshot_id": "snapshot-1",
+  "child_authority_id": "child-authority-1",
+  "repository": "example/repository",
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1",
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "status": "completed",
+  "partial": false,
+  "access_mode": "read_only",
+  "artifacts": [
+    {
+      "artifact_id": "patch-1",
+      "path": "changes.patch",
+      "kind": "patch",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "bytes": 20
+    }
+  ],
+  "changes": [
+    {
+      "path": "src/example.py",
+      "change_type": "modified",
+      "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "finding-1",
+      "claim": "Example candidate finding",
+      "observation": {
+        "kind": "candidate",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1",
+        "candidate": {
+          "candidate_id": "candidate-1",
+          "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "workspace_fingerprint": "candidate-workspace-1"
+        }
+      },
+      "evidence_references": [
+        "evidence-1"
+      ]
+    }
+  ],
+  "evidence_ids": [
+    "evidence-1"
+  ],
+  "limitations": [
+    "Fictional schema example"
+  ]
+}

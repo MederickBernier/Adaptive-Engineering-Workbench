@@ -199,6 +199,8 @@ The initial contract set uses **JSON Schema Draft 2020-12**.
 | Execution | `contracts/execution.schema.json` | Bounded execution, workspace expectations, verification, and budgets |
 | Delivery | `contracts/delivery.schema.json` | Commit proposals, change boundaries, PR preparation, and publication state |
 
+The side-by-side [0.2 contract family](contracts/v0.2/README.md) adds orchestration records, candidate bindings, and read-only delivery validation. Repository validation selects versions explicitly and checks declared workflow bindings. Runtime adoption follows the M9 handoff and its implementation boundary.
+
 ### Contract Boundaries
 
 **Task Contract:** Describes what needs to be accomplished. It does not authorize execution.
@@ -437,8 +439,8 @@ AEW is currently in early development. To work on AEW itself, install the develo
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m pytest -q
-.\.venv\Scripts\python.exe -m ruff check engine tests
-.\.venv\Scripts\python.exe -m ruff format --check engine tests
+.\.venv\Scripts\python.exe -m ruff check engine tests contracts
+.\.venv\Scripts\python.exe -m ruff format --check engine tests contracts
 ```
 
 On macOS or Linux, use `.venv/bin/python` for commands after creating the virtual environment. The Git integration tests use disposable local repositories. Live GitHub client calls require the GitHub CLI.

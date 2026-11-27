@@ -1,0 +1,35 @@
+{
+  "schema_version": "0.2",
+  "capability_id": "capability-1",
+  "configuration_digest": "sha256:7ee93ff111d8f7279f0fd261a8eb9f9d10ba14b0575bb3bae482efa566458843",
+  "adapter_id": "docker-local",
+  "adapter_version": "example-1",
+  "runtime_id": "docker",
+  "runtime_version": "example-version",
+  "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "environment": {
+    "os": "linux",
+    "os_version": "example-version",
+    "architecture": "x86_64"
+  },
+  "digest": "sha256:9eb9620612c86bc8011e3806390434cb9f5cf8378efcf908a864ae6aff0a42f4",
+  "threat_model": "Untrusted repository processes within the declared local boundary",
+  "controls": [
+    "repository_isolation",
+    "process_isolation",
+    "authority_isolation",
+    "context_isolation",
+    "network_deny",
+    "resource_limits",
+    "descendant_termination"
+  ],
+  "limitations": [
+    "Fictional fixture, no demonstrated isolation"
+  ],
+  "evidence_references": [
+    {
+      "reference": "isolation-evidence-1",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  ]
+}

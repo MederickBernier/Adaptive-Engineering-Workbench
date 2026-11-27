@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "id": "task-1",
+    "source": "local",
+    "repository": "example/repository",
+    "objective": "Update the scoped example"
+  },
+  "assessment": {
+    "profile": "standard",
+    "rationale": "Scoped specialist work",
+    "risk": "moderate",
+    "uncertainty": "low"
+  },
+  "plan": {
+    "revision": 1,
+    "approach": "Implement, verify, and review a candidate",
+    "scope": [
+      "src/**"
+    ],
+    "work_units": [
+      {
+        "id": "unit-1",
+        "objective": "Update the example",
+        "scope": [
+          "src/**"
+        ],
+        "acceptance": [
+          "Required checks pass"
+        ],
+        "commit_required": true,
+        "requirements": {
+          "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+          "required_checks": [
+            "unit"
+          ],
+          "required_review_ids": [
+            "human-review-1"
+          ],
+          "human_review_required": true
+        }
+      }
+    ],
+    "verification": [
+      "unit"
+    ],
+    "delegation": {
+      "max_concurrent_agents": 2,
+      "max_total_agent_launches": 5,
+      "max_delegation_depth": 1
+    }
+  },
+  "approval": {
+    "status": "approved",
+    "required_actions": [
+      "delegate",
+      "implement",
+      "run_tests"
+    ]
+  }
+}

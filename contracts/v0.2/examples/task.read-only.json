@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.2",
+  "task": {
+    "id": "task-1",
+    "source": "local",
+    "repository": "example/repository",
+    "objective": "Update the scoped example"
+  },
+  "assessment": {
+    "profile": "explore",
+    "rationale": "Scoped specialist work",
+    "risk": "moderate",
+    "uncertainty": "low"
+  },
+  "plan": {
+    "revision": 1,
+    "approach": "Implement, verify, and review a candidate",
+    "scope": [
+      "src/**"
+    ],
+    "work_units": [
+      {
+        "id": "unit-1",
+        "objective": "Update the example",
+        "scope": [
+          "src/**"
+        ],
+        "acceptance": [
+          "Required checks pass"
+        ],
+        "commit_required": false
+      }
+    ],
+    "verification": []
+  },
+  "approval": {
+    "status": "approved",
+    "required_actions": [
+      "investigate"
+    ]
+  }
+}

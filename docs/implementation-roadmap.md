@@ -2,11 +2,11 @@
 # Implementation Roadmap
 
 **Document:** `docs/implementation-roadmap.md`  
-**Document version:** 0.1.1
+**Document version:** 0.1.3
 
 **Architecture baseline:** AEW v0.1 with accepted orchestration extension
 
-**Status:** Accepted orchestration sequencing with future milestones Planned
+**Status:** Accepted sequencing with M9 contract validation delivered
 
 **Last updated:** 2026-11-26
 
@@ -24,7 +24,7 @@ It is intended for human engineers and AI coding agents, including Codex.
 
 The roadmap must remain subordinate to the accepted Architecture Decision Records (ADRs) and the project's documented invariants.
 
-ADR-013 through ADR-017 were accepted on 2026-11-26. M0–M8 retain their existing names, completion statuses, evidence, and recorded limitations. M9–M13 extend the sequence for specialist execution and orchestration. The current assignment covers documentation acceptance and alignment. Each future implementation milestone requires a separate assignment.
+ADR-013 through ADR-017 were accepted on 2026-11-26. M0–M8 retain their existing names, completion statuses, evidence, and recorded limitations. M9–M13 extend the sequence for specialist execution and orchestration. All six Work Unit 1 proposals are approved, and the current assignment covers only M9 Work Unit 2, versioned contracts and validation. Further runtime implementation requires an explicitly authorized Work Unit.
 
 ### 1.1 Guiding principle
 
@@ -168,7 +168,7 @@ Milestones define dependency order, not necessarily separate releases.
 
 Independent work may proceed concurrently where it does not compromise contracts or create unnecessary integration risk.
 
-The M0–M8 sections below preserve their historical verification records. Future M9–M13 scope and acceptance criteria are in section 22, with Planned status throughout.
+The M0–M8 sections below preserve their historical verification records. M9–M13 scope and acceptance criteria are in section 22. M9 is in progress with contract validation delivered and runtime work paused. M10–M13 remain Planned.
 
 ---
 
@@ -1407,9 +1407,9 @@ Milestone exit criteria are more important than calendar dates or version labels
 
 # 18. Current Boundary and Follow-on Backlog
 
-The current documentation Work Unit accepts ADR-013 through ADR-017 and aligns the architecture, roadmap, and Codex handoff. Its completion evidence consists of documentation consistency, links, scope, and milestone-history preservation checks.
+The current Work Unit is M9 versioned contracts and validation. The engineer approved all six proposals in the [assessment record](m9-contract-assessment.md). The [0.2 contract guide](../contracts/v0.2/README.md) documents the schemas and validation entry points delivered by Work Unit 2. Runtime implementation remains paused.
 
-The future engineering sequence begins with M9 after a separate assignment. Its first bounded work is to inventory existing consumers, review contract compatibility and migration requirements, define trusted runtime-evidence approval, and select a runtime configuration whose controls can be demonstrated. Subsequent work follows M10–M13 and their exit gates in section 22.
+Further M9 work requires explicit authorization for the selected Work Unit. Work Units 3–4 will establish trusted runtime-evidence approval enforcement, production ingestion and mappings, and demonstrated controls for the selected configuration. Subsequent work follows M10–M13 and their exit gates in section 22.
 
 The original baseline backlog is represented by the delivered M0–M8 records. Existing limitations, including external adoption and the read-only Execution Contract correction, retain their recorded status until separately verified.
 
@@ -1500,7 +1500,7 @@ When using this roadmap in Codex:
 11. Update documentation to match verified implementation behavior.
 12. Stop at the agreed milestone boundary and present evidence before proceeding.
 
-**Current target:** complete documentation acceptance and alignment. Future implementation starts with a separately assigned M9 Work Unit and requires contract review and applicable authorization before restricted operations.
+**Current target:** complete M9 Work Unit 2 and report contract validation and legacy preservation evidence. Stop before Work Unit 3, with runtime implementation paused.
 
 # 22. Accepted Orchestration Extension — M9–M13
 
@@ -1508,7 +1508,9 @@ This extension follows the completed M0–M8 sequence. Acceptance of its archite
 
 ## M9 — Delegation Contracts and Sandbox Eligibility
 
-**Status:** Planned
+**Status:** In progress
+
+**Current gate:** All six [assessment proposals](m9-contract-assessment.md) are approved. Work Unit 2 supplies the [0.2 schemas and repository validation](../contracts/v0.2/README.md). Work Units 3–4 remain pending authorization, with runtime implementation paused. M9's runtime eligibility and isolation exit criteria remain unverified.
 
 **Depends on:** M8 and the accepted ADR-013–ADR-017 extension
 

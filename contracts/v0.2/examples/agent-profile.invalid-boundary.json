@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.2",
+  "profile_id": "profile-1",
+  "profile_revision": "1",
+  "role_id": "implementer",
+  "role_revision": "1",
+  "responsibility": "Scoped implementation",
+  "deliverables": [
+    "Result manifest and changes"
+  ],
+  "capabilities": [
+    "unrestricted_shell"
+  ],
+  "restrictions": [
+    "delegate",
+    "commit",
+    "push",
+    "apply_candidate"
+  ],
+  "specializations": [
+    "python"
+  ],
+  "supported_change_types": [
+    "added",
+    "modified"
+  ]
+}

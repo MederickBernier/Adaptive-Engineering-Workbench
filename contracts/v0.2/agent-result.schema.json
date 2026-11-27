@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/agent-result.schema.json",
+  "title": "AEW 0.2 Agent Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "assignment_id",
+    "parent_execution_id",
+    "task_id",
+    "plan_revision",
+    "work_unit_id",
+    "context_id",
+    "snapshot_id",
+    "child_authority_id",
+    "repository",
+    "observation",
+    "status",
+    "partial",
+    "access_mode",
+    "artifacts",
+    "changes",
+    "findings",
+    "evidence_ids",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "result_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "assignment_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "parent_execution_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "work_unit_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "context_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "child_authority_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "observation": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/observation"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed",
+        "cancelled",
+        "suspended"
+      ]
+    },
+    "partial": {
+      "type": "boolean"
+    },
+    "access_mode": {
+      "enum": [
+        "read_only",
+        "scoped_write"
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "artifact_id",
+          "path",
+          "kind",
+          "digest",
+          "bytes"
+        ],
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "path": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/path"
+          },
+          "kind": {
+            "enum": [
+              "patch",
+              "findings",
+              "evidence",
+              "verification",
+              "summary"
+            ]
+          },
+          "digest": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/changed_file"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "claim",
+          "observation",
+          "evidence_references"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "claim": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "observation": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/observation"
+          },
+          "evidence_references": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        }
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "access_mode"
+        ],
+        "properties": {
+          "access_mode": {
+            "const": "read_only"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "changes": {
+            "maxItems": 0
+          },
+          "artifacts": {
+            "items": {
+              "properties": {
+                "kind": {
+                  "not": {
+                    "const": "patch"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "enum": [
+              "failed",
+              "cancelled",
+              "suspended"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "partial": {
+            "const": true
+          }
+        }
+      }
+    }
+  ]
+}

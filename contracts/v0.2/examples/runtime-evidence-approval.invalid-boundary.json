@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.2",
+  "runtime_approval_id": "runtime-approval-1",
+  "issuer_id": "trusted-host",
+  "capability_id": "capability-1",
+  "configuration_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "adapter_id": "docker-local",
+  "adapter_version": "example-1",
+  "runtime_id": "docker",
+  "runtime_version": "example-version",
+  "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "environment": {
+    "os": "linux",
+    "os_version": "example-version",
+    "architecture": "x86_64"
+  },
+  "capability_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "evidence_digests": [
+    "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  ],
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "withdrawal_reference": "trusted-status:runtime-approval-1",
+  "status": "active",
+  "proof": {
+    "algorithm": "hmac-sha256",
+    "domain": "aew-approval-v0.2",
+    "canonicalization": "aew-canonical-json-v1",
+    "key_id": "fictional-key",
+    "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

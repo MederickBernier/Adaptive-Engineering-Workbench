@@ -1,0 +1,20 @@
+{
+  "normalized_file_hashes": {
+    "contracts/approval.schema.json": "2cec2f2dc7e8332fd4ad33c7f7cea970a0dc54e3bba7653410a5286096772817",
+    "contracts/context.schema.json": "e4f7b83ee87bee7e637ecf7c08f08c80147c5e08ddc74c347a388f59543a15d0",
+    "contracts/delivery.schema.json": "6cc849cf779230a56558420bd181d7ed72ef73e4c44ba4829a8a3c44cec1f4e3",
+    "contracts/examples/approval.basic.json": "76ded3764121d3b73594500c7357e3ba49b03e83bbb8b929f6bded92c004dba1",
+    "contracts/examples/approval.invalid-unauthorized-operation.json": "85905984ce1a5c2263572c8c79a92d2e3adb5b3a50ab6350bf54c36164a4f4bb",
+    "contracts/examples/context.basic.json": "9a180b82e9aa4fffa71946baa5c1e3efc5b515698c102e8bd467f275ea3dcab5",
+    "contracts/examples/delivery.basic.json": "1e920164d18c7ecf5b3ba41d8cf746e7ea7371740037924c0d4b361eeddd6c79",
+    "contracts/examples/execution.basic.json": "5fa82e12c69483eb57958e2e4e74ccda59f3edf8904cc82917ef032072914bd5",
+    "contracts/examples/task.invalid-missing-objective.json": "f47d02aa54c9d05f42f3116a553c130e1be26731644721502657f6e365f959d2",
+    "contracts/examples/task.quick.json": "75bfc63eaa4589c62fef5ffe09501a157cf336be4afbce3bc6844112bf611aa0",
+    "contracts/examples/task.standard.json": "4c112b3935dad489d23a4af7320461515c5eb09db8f6b1abb0deaeaff1e64e9d",
+    "contracts/execution.schema.json": "ff051a66d151609cd509a9f4f5925a7dd2f60543a680cd055706f187e66d87d7",
+    "contracts/task.schema.json": "ed8559e4e95ff9fbb76a97ff91542a61dd4cb7cbc429ef5a02b807ce89b620fc"
+  },
+  "grant_signature": "3064f20039742d7728c48b08fbf3bcc6148444b731bc586034ea6541978e8ffd",
+  "checkpoint_binding": "806613488a10d172687e4559b238a9711143022652052ff14ab5b4a0045333bd",
+  "context_id": "ctx-sha256-81b538ac58650e9f22dddcc0adcb729c6dca00d18380dafd6f246a00c1d23a16"
+}

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/runtime-evidence-approval.schema.json",
+  "title": "AEW 0.2 Runtime Evidence Approval",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_approval_id",
+    "issuer_id",
+    "capability_id",
+    "capability_digest",
+    "configuration_digest",
+    "adapter_id",
+    "adapter_version",
+    "runtime_id",
+    "runtime_version",
+    "image",
+    "environment",
+    "evidence_digests",
+    "issued_at",
+    "expires_at",
+    "withdrawal_reference",
+    "status",
+    "proof"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "runtime_approval_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "issuer_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "capability_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "capability_digest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "configuration_digest": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "adapter_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "adapter_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "runtime_version": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "image": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+    },
+    "environment": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/environment"
+    },
+    "evidence_digests": {
+      "type": "array",
+      "items": {
+        "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "issued_at": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+    },
+    "withdrawal_reference": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "status": {
+      "enum": [
+        "active",
+        "withdrawn",
+        "expired"
+      ]
+    },
+    "proof": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/proof"
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "proof": {
+          "properties": {
+            "domain": {
+              "const": "aew-runtime-approval-v0.2"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

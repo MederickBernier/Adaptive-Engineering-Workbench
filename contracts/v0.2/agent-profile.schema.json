@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/agent-profile.schema.json",
+  "title": "AEW 0.2 Agent Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "profile_revision",
+    "role_id",
+    "role_revision",
+    "responsibility",
+    "deliverables",
+    "capabilities",
+    "restrictions",
+    "specializations",
+    "supported_change_types"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "profile_revision": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "role_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "role_revision": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "responsibility": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "deliverables": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "capabilities": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/operations"
+    },
+    "restrictions": {
+      "type": "array",
+      "items": {
+        "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/operation"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "specializations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "\\S"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "supported_change_types": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "added",
+          "modified",
+          "deleted",
+          "renamed"
+        ]
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    }
+  }
+}

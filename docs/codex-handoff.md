@@ -2,11 +2,11 @@
 # Codex Implementation Handoff
 
 **Document:** `docs/codex-handoff.md`  
-**Version:** 0.1.1
+**Version:** 0.1.3
 
 **Architecture baseline:** AEW v0.1 with accepted orchestration extension
 
-**Status:** Documentation acceptance and alignment
+**Status:** M9 Work Unit 2 complete — Runtime implementation paused
 
 **Last updated:** 2026-11-26
 
@@ -16,11 +16,11 @@
 
 ## 0. Current Assignment and Milestone State
 
-### 0.1 Authorized documentation Work Unit
+### 0.1 Authorized M9 contract-validation Work Unit
 
-The engineer accepted ADR-013 through ADR-017 on 2026-11-26 and authorized documentation updates to record that acceptance and align the architecture, roadmap, ADR registry, and this handoff. Authorized edits are limited to Markdown documentation. Completion requires consistency, local-link, file-scope, and historical-evidence preservation checks and a proposed commit description.
+The engineer approved all six Work Unit 1 proposals on 2026-11-26 and authorized only Work Unit 2, versioned contracts and validation, while preserving existing 0.1 interfaces. The baseline remains documentation commit `a93b9ac` with the retained Work Unit 1 documentation. Authorized work covers the side-by-side 0.2 schemas, fixtures, repository validation entry points, semantic checks, regression coverage, and affected documentation and CI checks.
 
-The accepted ADRs govern future design and implementation. Future runtime, schema, dependency, and execution changes require a separately assigned Work Unit with applicable contract review and authorization.
+The full M9 assignment is saved in section 0.5. Work Units 3–4 and runtime implementation remain paused. Runtime eligibility, production ingress and dependency promotion, typed runtime mappings, signing, execution, persistence migration, and live isolation require subsequent authorization.
 
 ### 0.2 Completed baseline and historical material
 
@@ -36,11 +36,11 @@ The [roadmap](implementation-roadmap.md) records the completed M0–M8 sequence 
 
 External adoption and other verification gaps retain their individual recorded status. Sections 4–16 preserve historical initial-handoff procedures and the M0 verification record. Section 16 contains the historical M0 kickoff. The current assignment is defined in section 0.1.
 
-### 0.3 Future implementation entry point
+### 0.3 M9 review gate and future sequence
 
-The next planned implementation milestone is M9 — Delegation Contracts and Sandbox Eligibility, followed by M10 — Specialist Runtime and Result Packages, M11 — Adaptive Orchestration and Hierarchical Budgets, M12 — Controlled Reconciliation and Integration, and M13 — Multi-Agent Hardening and Pilot Evaluation. Scope and exit criteria are in roadmap section 22.
+The current milestone is M9 — Delegation Contracts and Sandbox Eligibility, in Work Unit 2 contract validation. It is followed by M10 — Specialist Runtime and Result Packages, M11 — Adaptive Orchestration and Hierarchical Budgets, M12 — Controlled Reconciliation and Integration, and M13 — Multi-Agent Hardening and Pilot Evaluation. Scope and exit criteria are in roadmap section 22.
 
-After a separate M9 assignment, begin with repository and consumer inventory, compatibility and migration review of existing contracts, and a bounded runtime-evidence approval design. Review breaking schema changes with the engineer before implementation. Preserve the existing milestone evidence and supported behavior of current callers.
+M9 Work Unit 1 assessed the consumers and its six proposals are approved. Work Unit 2 delivers reviewed contracts and validation while preserving completed milestone evidence and supported behavior of current callers. Subsequent runtime work remains paused.
 
 ### 0.4 Accepted extension requirements
 
@@ -52,7 +52,42 @@ After a separate M9 assignment, begin with repository and consumer inventory, co
 - Give reviewers and verifiers candidate-specific immutable context with explicit rebinding on observation changes. Establish applicability to the actual target commit before publishing candidate findings as current committed-revision knowledge.
 - Apply a reviewed candidate only with current application authorization, preflight, workspace concurrency checks, and a confirmed resulting change boundary. Preserve unrelated changes and reconcile uncertain outcomes before retry.
 
-The current five schemas provide existing interfaces. New contracts, authority records, candidate bindings, and runtime eligibility controls are future implementation work governed by the accepted ADRs and M9 contract review.
+The original five schemas preserve the 0.1 interfaces. The [0.2 contract family](../contracts/v0.2/README.md) defines the reviewed orchestration records and candidate bindings with repository validation. Runtime eligibility and production ingestion remain subsequent work governed by the accepted ADRs.
+
+### 0.5 Bounded M9 assignment
+
+**Baseline:** `a93b9ac`
+
+**Objective:** Establish reviewed delegation contracts and a bounded runtime-eligibility path for the existing local sandbox adapter, with observed evidence and compatibility coverage. Preserve existing callers and completed milestone records.
+
+| Work Unit | Scope | Authorization state |
+|---|---|---|
+| 1 — Contract and consumer assessment | Inventory consumers of the five schemas and authority, context, execution, and delivery interfaces. Present a compatibility matrix and concrete versioning and migration proposals covering delegation, child authority, candidate bindings, runtime approval, agent-count limits, and read-only delivery. | Complete, all six proposals approved |
+| 2 — Versioned contracts and validation | Define Agent Profile, Agent Assignment, Sandbox, and Agent Result contracts and representations for runtime capabilities, evidence approvals, and child authority. Add positive and negative fixtures and preserve separate structural, semantic, and trusted-authority validation. | Complete, validated delivery awaiting engineer review |
+| 3 — Runtime eligibility | Assess the existing DockerSandbox as the initial candidate. Bind eligibility to adapter/runtime versions, image, operating environment, configuration, demonstrated capabilities, and trusted evidence approval. Validate integrity, applicability, validity, and withdrawal. | Pending review and authorization |
+| 4 — Verification and M10 handoff | Exercise the selected configuration, document demonstrated controls and limitations, specify the bounded M10 launch interface, and report migration and compatibility results. | Pending review and authorization |
+
+Future engine work is limited to runtime eligibility and directly affected contract consumers identified during assessment. Specialist launch and lifecycle delivery begin in M10. Adaptive orchestration, aggregate scheduling, and repository integration belong to M11–M13.
+
+The M9 acceptance criteria require rejection of invalid references, incompatible bindings, unauthorized delegation requests, forged or altered runtime approvals, expired or withdrawn approvals, and inapplicable evidence. Configuration changes trigger evidence reassessment. Real isolation checks must establish the selected configuration's claimed controls. Relevant regression checks must preserve existing callers, and unavailable required runtime checks prevent a fully verified M9 status.
+
+Future verification uses relevant contract and execution tests, broader affected regression tests, Ruff checks, and recorded isolation commands and outcomes. Each Work Unit reports files, compatibility decisions, observed results, limitations, remaining risks, milestone state, and proposed commits. M9 stops at its completion gate for engineer review.
+
+### 0.6 Work Unit 1 assessment approval
+
+The [contract and consumer assessment](m9-contract-assessment.md) records the observed interfaces, compatibility matrix, versioning strategy, typed mapping requirements, and migration sequence. The engineer approved all six proposals. Its baseline targeted tests reported 72 passed and 3 skipped, and its compatibility probes established the required version boundary.
+
+The 0.2 family, separate operation purposes and authority domains, candidate bindings, compatibility strategy, initial runtime candidate, and structural-validation approach are approved. Work Unit 2 implements repository validation using the development dependency. Runtime dependency promotion and production adoption remain under the runtime pause. M9 remains in progress with Work Units 3–4 pending authorization.
+
+### 0.7 Work Unit 2 delivery boundary
+
+The [contract family guide](../contracts/v0.2/README.md) documents 12 public schemas, shared definitions, version-aware local resolution, positive and negative fixtures, and single-Work-Unit bundle validation. Regression fixtures preserve legacy schema/example content, an existing signature, context identity, and checkpoint binding. The original runtime and package metadata remain byte-identical to the Work Unit 2 baseline.
+
+The final full regression command was `.venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider --tb=short`, with 374 passed and 5 skipped outside the Windows filesystem sandbox. The focused contract/unit command, `.venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider tests/contracts tests/unit`, reported 306 passed and 3 skipped. Three legacy negative-fixture cases and two opt-in Docker cases account for the full-suite skips. The initial full attempt exposed a missing declared PyYAML dependency, restored locally as PyYAML 6.0.4. A sandboxed run then failed three disposable Git clone/push cases, and the outside-sandbox run passed those cases. Ruff lint and formatting checks cover `engine tests contracts`. Hosted CI and new runtime isolation evidence remain unverified.
+
+The commit proposal is `Add versioned orchestration contracts and validation`, with a body describing the 0.2 schema family, offline structural and semantic validation, legacy compatibility coverage, and the paused runtime boundary. Publication requires its own authorization.
+
+Validation checks structure, content digests, and declared bindings. Trusted v0.2 issuance, live revocation, current-clock authority, runtime eligibility, artifact-byte verification, process isolation, actual application, and migration execution remain unverified runtime work. M9 is partially delivered and stops before Work Unit 3.
 
 ---
 
@@ -65,7 +100,7 @@ It establishes:
 - The project's purpose and engineering philosophy.
 - The authoritative documentation and decision hierarchy.
 - The expected initial repository state.
-- The current documentation assignment and the retained initial implementation assignment.
+- The bounded M9 assignment, active assessment scope, and retained initial implementation assignment.
 - The boundaries Codex must respect.
 - The verification evidence required.
 - The conditions under which implementation must stop for review.
@@ -74,7 +109,7 @@ This document is intended to be read alongside `AGENTS.md`, `docs/architecture.m
 
 It is not a replacement for those documents.
 
-The current objective is documentation acceptance and alignment of the orchestration extension. The original M0 objective and verification evidence remain part of the historical handoff.
+The current objective is M9 Work Unit 2 contract validation and preservation of existing 0.1 interfaces. The original M0 objective and verification evidence remain part of the historical handoff.
 
 ---
 

@@ -1,0 +1,649 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/common.schema.json",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "operation": {
+      "enum": [
+        "investigate",
+        "implement",
+        "run_tests",
+        "create_branch",
+        "stage",
+        "commit",
+        "push",
+        "create_pr",
+        "merge",
+        "delegate",
+        "review",
+        "apply_candidate"
+      ]
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "investigate",
+          "implement",
+          "run_tests",
+          "create_branch",
+          "stage",
+          "commit",
+          "push",
+          "create_pr",
+          "merge",
+          "delegate",
+          "review",
+          "apply_candidate"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/path"
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_iterations",
+        "max_tool_calls",
+        "max_duration_seconds"
+      ],
+      "properties": {
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_duration_seconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "agent_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_concurrent_agents",
+        "max_total_agent_launches",
+        "max_delegation_depth"
+      ],
+      "properties": {
+        "max_concurrent_agents": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_total_agent_launches": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_delegation_depth": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "digest",
+        "base_commit",
+        "workspace_fingerprint"
+      ],
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "digest": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+        },
+        "base_commit": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/commit"
+        },
+        "workspace_fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "base_commit",
+        "workspace_fingerprint"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "committed",
+            "candidate"
+          ]
+        },
+        "base_commit": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/commit"
+        },
+        "workspace_fingerprint": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "candidate"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "candidate"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "committed"
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "candidate"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "changed_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "change_type"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/path"
+        },
+        "change_type": {
+          "enum": [
+            "added",
+            "modified",
+            "deleted",
+            "renamed"
+          ]
+        },
+        "previous_path": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/path"
+        },
+        "before_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(sha256:[0-9a-f]{64}|git:([0-9a-f]{40}|[0-9a-f]{64}))$"
+        },
+        "after_hash": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(sha256:[0-9a-f]{64}|git:([0-9a-f]{40}|[0-9a-f]{64}))$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "enum": [
+                  "modified",
+                  "deleted",
+                  "renamed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "before_hash"
+            ],
+            "properties": {
+              "before_hash": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "enum": [
+                  "added",
+                  "modified",
+                  "renamed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "after_hash"
+            ],
+            "properties": {
+              "after_hash": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "change_type": {
+                "const": "renamed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "previous_path"
+            ]
+          }
+        }
+      ]
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "domain",
+        "canonicalization",
+        "key_id",
+        "signature"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "hmac-sha256"
+        },
+        "domain": {
+          "enum": [
+            "aew-approval-v0.2",
+            "aew-child-authority-v0.2",
+            "aew-runtime-approval-v0.2",
+            "aew-review-acceptance-v0.2"
+          ]
+        },
+        "canonicalization": {
+          "const": "aew-canonical-json-v1"
+        },
+        "key_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_id",
+        "issuer_id",
+        "candidate",
+        "requirements_digest",
+        "outcome",
+        "reviewer_kind",
+        "issued_at",
+        "proof"
+      ],
+      "properties": {
+        "review_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "issuer_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        },
+        "requirements_digest": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+        },
+        "outcome": {
+          "enum": [
+            "accepted",
+            "changes_requested",
+            "rejected"
+          ]
+        },
+        "reviewer_kind": {
+          "enum": [
+            "human",
+            "agent"
+          ]
+        },
+        "issued_at": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+        },
+        "proof": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/proof"
+        }
+      },
+      "allOf": [
+        {
+          "properties": {
+            "proof": {
+              "properties": {
+                "domain": {
+                  "const": "aew-review-acceptance-v0.2"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "execution_id",
+        "evidence_id",
+        "candidate",
+        "requirements_digest",
+        "runtime_approval_id",
+        "status",
+        "observed_at"
+      ],
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        },
+        "requirements_digest": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+        },
+        "runtime_approval_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "incomplete"
+          ]
+        },
+        "observed_at": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "failed",
+                  "not_run",
+                  "incomplete"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "reason"
+            ]
+          }
+        }
+      ]
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "digest",
+        "required_checks",
+        "required_review_ids",
+        "human_review_required"
+      ],
+      "properties": {
+        "digest": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/digest"
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "required_review_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "human_review_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "candidate_manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate",
+        "repository",
+        "snapshot_id",
+        "requirements",
+        "result_package_ids",
+        "files",
+        "resolution_references",
+        "contributions"
+      ],
+      "properties": {
+        "candidate": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/candidate"
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "requirements": {
+          "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/requirements"
+        },
+        "result_package_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/changed_file"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "resolution_references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 0,
+          "uniqueItems": true
+        },
+        "contributions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "result_id",
+              "disposition",
+              "reason"
+            ],
+            "properties": {
+              "result_id": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "disposition": {
+                "enum": [
+                  "accepted",
+                  "rejected",
+                  "deferred",
+                  "superseded"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "os_version",
+        "architecture"
+      ],
+      "properties": {
+        "os": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "os_version": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        }
+      }
+    }
+  }
+}

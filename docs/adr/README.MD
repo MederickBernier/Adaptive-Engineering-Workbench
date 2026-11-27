@@ -1,7 +1,7 @@
 # AEW — Architecture Decision Records
 
 **Document:** `docs/adr/README.md`  
-**Version:** 0.1.1
+**Version:** 0.1.2
 
 **Architecture baseline:** AEW v0.1 with accepted orchestration extension
 
@@ -435,7 +435,7 @@ The following table identifies the principal contract relationships.
 | ADR-016 | Approval, Execution, Agent Assignment, child authority records |
 | ADR-017 | Agent Result, Context, Approval, Execution, Delivery |
 
-Agent Profile, Agent Assignment, Sandbox, Agent Result, and the supporting authority and runtime records are future contract work. Their structures and compatibility with the five existing schemas require review in M9.
+M9 Work Unit 2 supplies the [0.2 schemas and repository validation](../../contracts/v0.2/README.md) for these records after engineer approval of the compatibility assessment. The original five 0.1 schemas remain available. Runtime ingestion, trusted authority enforcement, eligibility, and migration remain subsequent work.
 
 These relationships are not exhaustive.
 

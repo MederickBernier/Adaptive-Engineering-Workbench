@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aew.local/schemas/0.2/child-authority.schema.json",
+  "title": "AEW 0.2 Child Authority",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "child_authority_id",
+    "assignment_id",
+    "parent_execution_id",
+    "task_id",
+    "plan_revision",
+    "work_unit_id",
+    "context_id",
+    "repository",
+    "observation",
+    "operations",
+    "allowed_paths",
+    "protected_paths",
+    "budget",
+    "agent_counts",
+    "parent_grant_id",
+    "issuer_id",
+    "issued_at",
+    "expires_at",
+    "revocation_reference",
+    "delegation_depth",
+    "status",
+    "proof"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.2"
+    },
+    "child_authority_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "assignment_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "parent_execution_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "plan_revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "work_unit_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "context_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "observation": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/observation"
+    },
+    "operations": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/operations"
+    },
+    "allowed_paths": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/paths"
+    },
+    "protected_paths": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/paths"
+    },
+    "budget": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/limits"
+    },
+    "agent_counts": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/agent_counts"
+    },
+    "parent_grant_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "issuer_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "issued_at": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+    },
+    "expires_at": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/timestamp"
+    },
+    "revocation_reference": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "delegation_depth": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "active",
+        "suspended",
+        "revoked",
+        "expired"
+      ]
+    },
+    "proof": {
+      "$ref": "https://aew.local/schemas/0.2/common.schema.json#/$defs/proof"
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "proof": {
+          "properties": {
+            "domain": {
+              "const": "aew-child-authority-v0.2"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

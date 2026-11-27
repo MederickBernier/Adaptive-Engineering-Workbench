@@ -28,6 +28,6 @@ jobs:
       - name: Run tests
         run: python -m pytest -q
       - name: Lint Python sources
-        run: python -m ruff check engine tests
+        run: python -m ruff check engine tests contracts
       - name: Check Python formatting
-        run: python -m ruff format --check engine tests
+        run: python -m ruff format --check engine tests contracts

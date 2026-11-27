@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.2",
+  "execution_id": "execution-1",
+  "task_id": "task-1",
+  "plan_revision": 1,
+  "work_unit_id": "unit-1",
+  "context": {
+    "package_id": "context-1",
+    "snapshot_id": "snapshot-1"
+  },
+  "authorization": {
+    "grant_id": "grant-1",
+    "required_operations": [
+      "implement",
+      "run_tests"
+    ]
+  },
+  "workspace": {
+    "repository": "example/repository",
+    "branch": "main",
+    "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_id": "workspace-1",
+    "expected_fingerprint": "candidate-workspace-1"
+  },
+  "scope": {
+    "allowed_paths": [
+      "src/**"
+    ],
+    "protected_paths": [
+      ".git/**",
+      "src/private/**"
+    ],
+    "preserve_unrelated_changes": true
+  },
+  "budget": {
+    "max_iterations": 5,
+    "max_tool_calls": 20,
+    "max_duration_seconds": 300,
+    "on_exhaustion": "suspend"
+  },
+  "verification": {
+    "required_checks": [
+      {
+        "id": "unit",
+        "description": "Unit checks",
+        "required": true
+      }
+    ],
+    "require_evidence": true
+  },
+  "delivery": {
+    "prepare_commit": false,
+    "execute_commit": false,
+    "push": true,
+    "create_pr": false,
+    "merge": false
+  },
+  "state": {
+    "status": "ready",
+    "iteration": 0
+  },
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1",
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "assignment_id": "assignment-1",
+  "parent_execution_id": "parent-execution-1",
+  "child_authority_id": "child-authority-1",
+  "sandbox_id": "sandbox-1",
+  "capability_id": "capability-1",
+  "runtime_approval_id": "runtime-approval-1",
+  "accounting_id": "task-accounting-1",
+  "agent_counts": {
+    "max_concurrent_agents": 1,
+    "max_total_agent_launches": 1,
+    "max_delegation_depth": 1
+  }
+}

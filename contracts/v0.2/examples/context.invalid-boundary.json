@@ -1,0 +1,24 @@
+{
+  "schema_version": "0.2",
+  "package_id": "context-1",
+  "identity": {
+    "task_id": "task-1",
+    "repository": "example/repository",
+    "revision": {
+      "branch": "main",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot_id": "snapshot-1",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "integrity": {
+    "freshness": "current",
+    "coverage": "partial",
+    "limitations": []
+  },
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1"
+  }
+}

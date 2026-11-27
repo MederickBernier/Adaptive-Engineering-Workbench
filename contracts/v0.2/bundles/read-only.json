@@ -1,0 +1,216 @@
+{
+  "task": {
+    "schema_version": "0.2",
+    "task": {
+      "id": "task-1",
+      "source": "local",
+      "repository": "example/repository",
+      "objective": "Update the scoped example"
+    },
+    "assessment": {
+      "profile": "explore",
+      "rationale": "Scoped specialist work",
+      "risk": "moderate",
+      "uncertainty": "low"
+    },
+    "plan": {
+      "revision": 1,
+      "approach": "Implement, verify, and review a candidate",
+      "scope": [
+        "src/**"
+      ],
+      "work_units": [
+        {
+          "id": "unit-1",
+          "objective": "Update the example",
+          "scope": [
+            "src/**"
+          ],
+          "acceptance": [
+            "Required checks pass"
+          ],
+          "commit_required": false
+        }
+      ],
+      "verification": []
+    },
+    "approval": {
+      "status": "approved",
+      "required_actions": [
+        "investigate"
+      ]
+    }
+  },
+  "context": {
+    "schema_version": "0.2",
+    "package_id": "context-1",
+    "identity": {
+      "task_id": "task-1",
+      "repository": "example/repository",
+      "revision": {
+        "branch": "main",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "snapshot_id": "snapshot-1",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "integrity": {
+      "freshness": "current",
+      "coverage": "partial",
+      "limitations": []
+    },
+    "observation": {
+      "kind": "committed",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "approval": {
+    "schema_version": "0.2",
+    "grant_id": "grant-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "workspace": {
+      "repository": "example/repository",
+      "branch": "main",
+      "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_id": "workspace-1"
+    },
+    "status": "active",
+    "authorization": {
+      "operations": [
+        "investigate"
+      ]
+    },
+    "scope": {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "protected_paths": [
+        ".git/**",
+        "src/private/**"
+      ],
+      "work_unit_ids": [
+        "unit-1"
+      ]
+    },
+    "constraints": {
+      "preserve_unrelated_changes": true,
+      "allow_public_api_changes": false,
+      "allow_database_migrations": false,
+      "allow_new_dependencies": false,
+      "allow_destructive_operations": false
+    },
+    "issued_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2099-01-01T00:00:00Z",
+    "issuer_id": "trusted-host",
+    "record_purpose": "execution_authorization",
+    "proof": {
+      "algorithm": "hmac-sha256",
+      "domain": "aew-approval-v0.2",
+      "canonicalization": "aew-canonical-json-v1",
+      "key_id": "fictional-key",
+      "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "execution": {
+    "schema_version": "0.2",
+    "execution_id": "execution-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "work_unit_id": "unit-1",
+    "context": {
+      "package_id": "context-1",
+      "snapshot_id": "snapshot-1"
+    },
+    "authorization": {
+      "grant_id": "grant-1",
+      "required_operations": [
+        "investigate"
+      ]
+    },
+    "workspace": {
+      "repository": "example/repository",
+      "branch": "main",
+      "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_id": "workspace-1",
+      "expected_fingerprint": "candidate-workspace-1"
+    },
+    "scope": {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "protected_paths": [
+        ".git/**",
+        "src/private/**"
+      ],
+      "preserve_unrelated_changes": true
+    },
+    "budget": {
+      "max_iterations": 5,
+      "max_tool_calls": 20,
+      "max_duration_seconds": 300,
+      "on_exhaustion": "suspend"
+    },
+    "verification": {
+      "required_checks": [],
+      "require_evidence": true
+    },
+    "delivery": {
+      "prepare_commit": false,
+      "execute_commit": false,
+      "push": false,
+      "create_pr": false,
+      "merge": false
+    },
+    "state": {
+      "status": "ready",
+      "iteration": 0
+    },
+    "observation": {
+      "kind": "committed",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "delivery": {
+    "schema_version": "0.2",
+    "delivery_id": "delivery-1",
+    "task_id": "task-1",
+    "repository": "example/repository",
+    "plan_revision": 1,
+    "work_units": [
+      {
+        "work_unit_id": "unit-1",
+        "status": "findings_ready",
+        "outcome_kind": "read_only",
+        "change_boundary": {
+          "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "files": [],
+          "separation": "isolated_patch"
+        },
+        "verification": []
+      }
+    ],
+    "pull_request": {
+      "status": "not_requested"
+    },
+    "publication": {
+      "stage": {
+        "status": "not_authorized"
+      },
+      "commit": {
+        "status": "not_authorized"
+      },
+      "push": {
+        "status": "not_authorized"
+      },
+      "create_pr": {
+        "status": "not_authorized"
+      },
+      "merge": {
+        "status": "not_authorized"
+      }
+    }
+  }
+}

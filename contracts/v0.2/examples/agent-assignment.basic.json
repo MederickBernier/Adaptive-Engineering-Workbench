@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.2",
+  "assignment_id": "assignment-1",
+  "request_id": "request-1",
+  "task_id": "task-1",
+  "plan_revision": 1,
+  "work_unit_id": "unit-1",
+  "parent_execution_id": "parent-execution-1",
+  "profile_id": "profile-1",
+  "profile_revision": "1",
+  "role_id": "implementer",
+  "role_revision": "1",
+  "context_id": "context-1",
+  "snapshot_id": "snapshot-1",
+  "repository": "example/repository",
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1",
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "child_authority_id": "child-authority-1",
+  "sandbox_id": "sandbox-1",
+  "capability_id": "capability-1",
+  "runtime_approval_id": "runtime-approval-1",
+  "accounting_id": "task-accounting-1",
+  "operations": [
+    "implement",
+    "run_tests"
+  ],
+  "allowed_paths": [
+    "src/**"
+  ],
+  "protected_paths": [
+    ".git/**",
+    "src/private/**"
+  ],
+  "budget": {
+    "max_iterations": 5,
+    "max_tool_calls": 20,
+    "max_duration_seconds": 300
+  },
+  "agent_counts": {
+    "max_concurrent_agents": 1,
+    "max_total_agent_launches": 1,
+    "max_delegation_depth": 1
+  },
+  "specializations": [
+    {
+      "label": "python",
+      "basis": "Project manifest",
+      "evidence_references": [
+        "repository:pyproject.toml"
+      ]
+    }
+  ],
+  "dependencies": [],
+  "access_mode": "scoped_write"
+}

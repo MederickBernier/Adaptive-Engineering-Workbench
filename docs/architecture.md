@@ -6,7 +6,7 @@
 
 **Baseline:** v0.1 (2026-11-21), extended by ADR-013 through ADR-017 on 2026-11-26
 
-**Document version:** 0.1.1
+**Document version:** 0.1.3
 
 **Last updated:** 2026-11-26
 
@@ -23,7 +23,7 @@ AEW is a local-first, human-governed engineering workbench supporting small bug 
 
 **Non-goals for v0.1:** autonomous deployment/merge, distributed knowledge services, cross-repository graph federation, vector search, full Obsidian synchronization, complex patch queues, and multi-agent orchestration.
 
-The accepted post-v0.1 orchestration design is consolidated in section 20. Its implementation is planned after the recorded M0–M8 milestone history. The current assignment covers documentation acceptance and alignment.
+The accepted post-v0.1 orchestration design is consolidated in section 20. Its implementation follows the recorded M0–M8 milestone history. The current assignment covers only M9 Work Unit 2, versioned contracts and validation, with runtime implementation paused.
 
 ## 2. Architectural principles
 
@@ -339,7 +339,7 @@ JSON Schema validates structure; cross-contract references, authenticity of appr
 
 The local Python prototype implements revision-scoped Project Brain storage, task intake and planning, Git preflight, guarded isolated execution, and delivery preparation. GitHub coordination is covered by mocked adapter tests and authenticated live verification recorded under M1 in the roadmap. Shared-checkout promotion and publication require separate authorization.
 
-The accepted extension requires future Agent Profile, Agent Assignment, Sandbox, and Agent Result contracts, plus runtime capability descriptions, trusted evidence approval records, and traceable child authority records. M9 must review their representations and compatibility with the existing Task, Context, Approval, Execution, and Delivery schemas, including explicit delegation permission and candidate-bound evidence. Structural validation, semantic consistency, and trusted runtime authority remain separate checks.
+M9 Work Unit 2 delivers the side-by-side [0.2 contract family](../contracts/v0.2/README.md), including Agent Profile, Agent Assignment, Sandbox, Agent Result, runtime capabilities, evidence approval, child authority, and extended Task, Context, Approval, Execution, and Delivery schemas. Repository tooling selects versions explicitly and checks structure and declared semantic bindings. Existing 0.1 schemas and runtime consumers retain their original interfaces. Production ingestion, trusted authority enforcement, eligibility, and migration remain subsequent runtime work. Structural validation, semantic consistency, and trusted runtime authority remain separate checks.
 
 ## 19. Documentation maintenance and change control
 
@@ -351,7 +351,7 @@ The accepted extension requires future Agent Profile, Agent Assignment, Sandbox,
 - Contract amendments require an explicit decision and impact review; ordinary implementation refinements that preserve approved invariants do not.
 - Validate examples against schemas and tests as soon as the validation harness exists.
 
-**Current handoff:** documentation acceptance and alignment under the [Codex handoff](codex-handoff.md). Future implementation begins with the bounded M9 contract and runtime-eligibility work after a separate assignment.
+**Current handoff:** M9 Work Unit 2 versioned contracts and validation under the [Codex handoff](codex-handoff.md). The [assessment proposals](m9-contract-assessment.md) are approved. Runtime implementation remains paused before Work Unit 3.
 
 ## 20. Accepted Orchestration Extension (ADR-013–ADR-017)
 
@@ -393,4 +393,4 @@ Candidate findings retain candidate provenance. Inclusion as current knowledge i
 
 ### 20.5 Implementation sequence and evidence
 
-M9 establishes reviewed contracts and runtime eligibility. M10 delivers a bounded specialist runtime and result packages. M11 adds adaptive orchestration and aggregate governance. M12 delivers controlled reconciliation and application. M13 verifies isolation, concurrency, recovery, and pilot behavior. These milestones are Planned and require future implementation and observed verification before capability claims can be made.
+M9 establishes reviewed contracts and runtime eligibility and is in progress with Work Unit 2 contract validation delivered. Runtime eligibility and live verification remain pending. M10 delivers a bounded specialist runtime and result packages. M11 adds adaptive orchestration and aggregate governance. M12 delivers controlled reconciliation and application. M13 verifies isolation, concurrency, recovery, and pilot behavior. M10–M13 remain Planned. Implementation and observed verification are required before capability claims can be made.

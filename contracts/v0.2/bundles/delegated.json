@@ -1,0 +1,743 @@
+{
+  "task": {
+    "schema_version": "0.2",
+    "task": {
+      "id": "task-1",
+      "source": "local",
+      "repository": "example/repository",
+      "objective": "Update the scoped example"
+    },
+    "assessment": {
+      "profile": "standard",
+      "rationale": "Scoped specialist work",
+      "risk": "moderate",
+      "uncertainty": "low"
+    },
+    "plan": {
+      "revision": 1,
+      "approach": "Implement, verify, and review a candidate",
+      "scope": [
+        "src/**"
+      ],
+      "work_units": [
+        {
+          "id": "unit-1",
+          "objective": "Update the example",
+          "scope": [
+            "src/**"
+          ],
+          "acceptance": [
+            "Required checks pass"
+          ],
+          "commit_required": true,
+          "requirements": {
+            "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+            "required_checks": [
+              "unit"
+            ],
+            "required_review_ids": [
+              "human-review-1"
+            ],
+            "human_review_required": true
+          }
+        }
+      ],
+      "verification": [
+        "unit"
+      ],
+      "delegation": {
+        "max_concurrent_agents": 2,
+        "max_total_agent_launches": 5,
+        "max_delegation_depth": 1
+      }
+    },
+    "approval": {
+      "status": "approved",
+      "required_actions": [
+        "delegate",
+        "implement",
+        "run_tests"
+      ]
+    }
+  },
+  "context": {
+    "schema_version": "0.2",
+    "package_id": "context-1",
+    "identity": {
+      "task_id": "task-1",
+      "repository": "example/repository",
+      "revision": {
+        "branch": "main",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "snapshot_id": "snapshot-1",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "integrity": {
+      "freshness": "current",
+      "coverage": "partial",
+      "limitations": []
+    },
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    }
+  },
+  "approval": {
+    "schema_version": "0.2",
+    "grant_id": "grant-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "workspace": {
+      "repository": "example/repository",
+      "branch": "main",
+      "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_id": "workspace-1"
+    },
+    "status": "active",
+    "authorization": {
+      "operations": [
+        "delegate",
+        "investigate",
+        "implement",
+        "run_tests",
+        "review",
+        "apply_candidate"
+      ],
+      "delegation": {
+        "max_concurrent_agents": 2,
+        "max_total_agent_launches": 5,
+        "max_delegation_depth": 1
+      }
+    },
+    "scope": {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "protected_paths": [
+        ".git/**",
+        "src/private/**"
+      ],
+      "work_unit_ids": [
+        "unit-1"
+      ]
+    },
+    "constraints": {
+      "preserve_unrelated_changes": true,
+      "allow_public_api_changes": false,
+      "allow_database_migrations": false,
+      "allow_new_dependencies": false,
+      "allow_destructive_operations": false
+    },
+    "issued_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2099-01-01T00:00:00Z",
+    "issuer_id": "trusted-host",
+    "record_purpose": "execution_authorization",
+    "proof": {
+      "algorithm": "hmac-sha256",
+      "domain": "aew-approval-v0.2",
+      "canonicalization": "aew-canonical-json-v1",
+      "key_id": "fictional-key",
+      "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    },
+    "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+    "resource_limits": {
+      "max_iterations": 5,
+      "max_tool_calls": 20,
+      "max_duration_seconds": 300
+    }
+  },
+  "execution": {
+    "schema_version": "0.2",
+    "execution_id": "execution-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "work_unit_id": "unit-1",
+    "context": {
+      "package_id": "context-1",
+      "snapshot_id": "snapshot-1"
+    },
+    "authorization": {
+      "grant_id": "grant-1",
+      "required_operations": [
+        "implement",
+        "run_tests"
+      ]
+    },
+    "workspace": {
+      "repository": "example/repository",
+      "branch": "main",
+      "baseline_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_id": "workspace-1",
+      "expected_fingerprint": "candidate-workspace-1"
+    },
+    "scope": {
+      "allowed_paths": [
+        "src/**"
+      ],
+      "protected_paths": [
+        ".git/**",
+        "src/private/**"
+      ],
+      "preserve_unrelated_changes": true
+    },
+    "budget": {
+      "max_iterations": 5,
+      "max_tool_calls": 20,
+      "max_duration_seconds": 300,
+      "on_exhaustion": "suspend"
+    },
+    "verification": {
+      "required_checks": [
+        {
+          "id": "unit",
+          "description": "Unit checks",
+          "required": true
+        }
+      ],
+      "require_evidence": true
+    },
+    "delivery": {
+      "prepare_commit": true,
+      "execute_commit": false,
+      "push": false,
+      "create_pr": false,
+      "merge": false
+    },
+    "state": {
+      "status": "ready",
+      "iteration": 0
+    },
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "assignment_id": "assignment-1",
+    "parent_execution_id": "parent-execution-1",
+    "child_authority_id": "child-authority-1",
+    "sandbox_id": "sandbox-1",
+    "capability_id": "capability-1",
+    "runtime_approval_id": "runtime-approval-1",
+    "accounting_id": "task-accounting-1",
+    "agent_counts": {
+      "max_concurrent_agents": 1,
+      "max_total_agent_launches": 1,
+      "max_delegation_depth": 1
+    }
+  },
+  "delivery": {
+    "schema_version": "0.2",
+    "delivery_id": "delivery-1",
+    "task_id": "task-1",
+    "repository": "example/repository",
+    "plan_revision": 1,
+    "work_units": [
+      {
+        "work_unit_id": "unit-1",
+        "status": "commit_proposed",
+        "outcome_kind": "implementation",
+        "commit_proposal": {
+          "title": "Update example",
+          "body": "Example proposal",
+          "format": "custom"
+        },
+        "change_boundary": {
+          "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "files": [
+            {
+              "path": "src/example.py",
+              "change_type": "modified",
+              "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+            }
+          ],
+          "separation": "isolated_patch",
+          "workspace_fingerprint": "candidate-workspace-1"
+        },
+        "candidate": {
+          "candidate_id": "candidate-1",
+          "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+          "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "workspace_fingerprint": "candidate-workspace-1"
+        },
+        "requirements": {
+          "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+          "required_checks": [
+            "unit"
+          ],
+          "required_review_ids": [
+            "human-review-1"
+          ],
+          "human_review_required": true
+        },
+        "verification": [
+          {
+            "check_id": "unit",
+            "execution_id": "execution-1",
+            "evidence_id": "evidence-1",
+            "candidate": {
+              "candidate_id": "candidate-1",
+              "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+              "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "workspace_fingerprint": "candidate-workspace-1"
+            },
+            "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+            "runtime_approval_id": "runtime-approval-1",
+            "status": "passed",
+            "observed_at": "2026-01-01T00:00:00Z"
+          }
+        ],
+        "reviews": [
+          {
+            "review_id": "human-review-1",
+            "issuer_id": "trusted-host",
+            "candidate": {
+              "candidate_id": "candidate-1",
+              "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+              "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "workspace_fingerprint": "candidate-workspace-1"
+            },
+            "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+            "outcome": "accepted",
+            "reviewer_kind": "human",
+            "issued_at": "2026-01-01T00:00:00Z",
+            "proof": {
+              "algorithm": "hmac-sha256",
+              "domain": "aew-review-acceptance-v0.2",
+              "canonicalization": "aew-canonical-json-v1",
+              "key_id": "fictional-key",
+              "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+            }
+          }
+        ],
+        "application": {
+          "status": "pending"
+        }
+      }
+    ],
+    "pull_request": {
+      "status": "not_ready",
+      "included_work_units": [
+        "unit-1"
+      ]
+    },
+    "publication": {
+      "stage": {
+        "status": "not_authorized"
+      },
+      "commit": {
+        "status": "not_authorized"
+      },
+      "push": {
+        "status": "not_authorized"
+      },
+      "create_pr": {
+        "status": "not_authorized"
+      },
+      "merge": {
+        "status": "not_authorized"
+      }
+    },
+    "candidate_manifest": {
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      },
+      "repository": "example/repository",
+      "snapshot_id": "snapshot-1",
+      "requirements": {
+        "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+        "required_checks": [
+          "unit"
+        ],
+        "required_review_ids": [
+          "human-review-1"
+        ],
+        "human_review_required": true
+      },
+      "result_package_ids": [
+        "result-1"
+      ],
+      "files": [
+        {
+          "path": "src/example.py",
+          "change_type": "modified",
+          "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      ],
+      "resolution_references": [],
+      "contributions": [
+        {
+          "result_id": "result-1",
+          "disposition": "accepted",
+          "reason": "Accepted scoped contribution"
+        }
+      ]
+    }
+  },
+  "agent-profile": {
+    "schema_version": "0.2",
+    "profile_id": "profile-1",
+    "profile_revision": "1",
+    "role_id": "implementer",
+    "role_revision": "1",
+    "responsibility": "Scoped implementation",
+    "deliverables": [
+      "Result manifest and changes"
+    ],
+    "capabilities": [
+      "investigate",
+      "implement",
+      "run_tests"
+    ],
+    "restrictions": [
+      "delegate",
+      "commit",
+      "push",
+      "apply_candidate"
+    ],
+    "specializations": [
+      "python"
+    ],
+    "supported_change_types": [
+      "added",
+      "modified"
+    ]
+  },
+  "agent-assignment": {
+    "schema_version": "0.2",
+    "assignment_id": "assignment-1",
+    "request_id": "request-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "work_unit_id": "unit-1",
+    "parent_execution_id": "parent-execution-1",
+    "profile_id": "profile-1",
+    "profile_revision": "1",
+    "role_id": "implementer",
+    "role_revision": "1",
+    "context_id": "context-1",
+    "snapshot_id": "snapshot-1",
+    "repository": "example/repository",
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "child_authority_id": "child-authority-1",
+    "sandbox_id": "sandbox-1",
+    "capability_id": "capability-1",
+    "runtime_approval_id": "runtime-approval-1",
+    "accounting_id": "task-accounting-1",
+    "operations": [
+      "implement",
+      "run_tests"
+    ],
+    "allowed_paths": [
+      "src/**"
+    ],
+    "protected_paths": [
+      ".git/**",
+      "src/private/**"
+    ],
+    "budget": {
+      "max_iterations": 5,
+      "max_tool_calls": 20,
+      "max_duration_seconds": 300
+    },
+    "agent_counts": {
+      "max_concurrent_agents": 1,
+      "max_total_agent_launches": 1,
+      "max_delegation_depth": 1
+    },
+    "specializations": [
+      {
+        "label": "python",
+        "basis": "Project manifest",
+        "evidence_references": [
+          "repository:pyproject.toml"
+        ]
+      }
+    ],
+    "dependencies": [],
+    "access_mode": "scoped_write"
+  },
+  "sandbox": {
+    "schema_version": "0.2",
+    "sandbox_id": "sandbox-1",
+    "capability_id": "capability-1",
+    "configuration_digest": "sha256:7ee93ff111d8f7279f0fd261a8eb9f9d10ba14b0575bb3bae482efa566458843",
+    "adapter_id": "docker-local",
+    "adapter_version": "example-1",
+    "runtime_id": "docker",
+    "runtime_version": "example-version",
+    "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "environment": {
+      "os": "linux",
+      "os_version": "example-version",
+      "architecture": "x86_64"
+    },
+    "repository": "example/repository",
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "writable_paths": [
+      "src/**"
+    ],
+    "mounts": [],
+    "privileged": false,
+    "host_runtime_socket": false,
+    "network": {
+      "mode": "denied",
+      "destinations": []
+    },
+    "resources": {
+      "cpu_millicores": 1000,
+      "memory_bytes": 268435456,
+      "max_processes": 64,
+      "scratch_bytes": 16777216,
+      "output_bytes": 1048576
+    },
+    "required_controls": [
+      "repository_isolation",
+      "process_isolation",
+      "authority_isolation",
+      "context_isolation",
+      "network_deny",
+      "resource_limits",
+      "descendant_termination"
+    ],
+    "runtime_approval_id": "runtime-approval-1"
+  },
+  "runtime-capability": {
+    "schema_version": "0.2",
+    "capability_id": "capability-1",
+    "configuration_digest": "sha256:7ee93ff111d8f7279f0fd261a8eb9f9d10ba14b0575bb3bae482efa566458843",
+    "adapter_id": "docker-local",
+    "adapter_version": "example-1",
+    "runtime_id": "docker",
+    "runtime_version": "example-version",
+    "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "environment": {
+      "os": "linux",
+      "os_version": "example-version",
+      "architecture": "x86_64"
+    },
+    "digest": "sha256:9eb9620612c86bc8011e3806390434cb9f5cf8378efcf908a864ae6aff0a42f4",
+    "threat_model": "Untrusted repository processes within the declared local boundary",
+    "controls": [
+      "repository_isolation",
+      "process_isolation",
+      "authority_isolation",
+      "context_isolation",
+      "network_deny",
+      "resource_limits",
+      "descendant_termination"
+    ],
+    "limitations": [
+      "Fictional fixture, no demonstrated isolation"
+    ],
+    "evidence_references": [
+      {
+        "reference": "isolation-evidence-1",
+        "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  },
+  "runtime-evidence-approval": {
+    "schema_version": "0.2",
+    "runtime_approval_id": "runtime-approval-1",
+    "issuer_id": "trusted-host",
+    "capability_id": "capability-1",
+    "configuration_digest": "sha256:7ee93ff111d8f7279f0fd261a8eb9f9d10ba14b0575bb3bae482efa566458843",
+    "adapter_id": "docker-local",
+    "adapter_version": "example-1",
+    "runtime_id": "docker",
+    "runtime_version": "example-version",
+    "image": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "environment": {
+      "os": "linux",
+      "os_version": "example-version",
+      "architecture": "x86_64"
+    },
+    "capability_digest": "sha256:9eb9620612c86bc8011e3806390434cb9f5cf8378efcf908a864ae6aff0a42f4",
+    "evidence_digests": [
+      "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    ],
+    "issued_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2099-01-01T00:00:00Z",
+    "withdrawal_reference": "trusted-status:runtime-approval-1",
+    "status": "active",
+    "proof": {
+      "algorithm": "hmac-sha256",
+      "domain": "aew-runtime-approval-v0.2",
+      "canonicalization": "aew-canonical-json-v1",
+      "key_id": "fictional-key",
+      "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "child-authority": {
+    "schema_version": "0.2",
+    "child_authority_id": "child-authority-1",
+    "assignment_id": "assignment-1",
+    "parent_execution_id": "parent-execution-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "work_unit_id": "unit-1",
+    "context_id": "context-1",
+    "repository": "example/repository",
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "operations": [
+      "implement",
+      "run_tests"
+    ],
+    "allowed_paths": [
+      "src/**"
+    ],
+    "protected_paths": [
+      ".git/**",
+      "src/private/**"
+    ],
+    "budget": {
+      "max_iterations": 5,
+      "max_tool_calls": 20,
+      "max_duration_seconds": 300
+    },
+    "agent_counts": {
+      "max_concurrent_agents": 1,
+      "max_total_agent_launches": 1,
+      "max_delegation_depth": 1
+    },
+    "parent_grant_id": "grant-1",
+    "issuer_id": "trusted-host",
+    "issued_at": "2026-01-01T00:00:00Z",
+    "expires_at": "2099-01-01T00:00:00Z",
+    "revocation_reference": "trusted-status:child-authority-1",
+    "delegation_depth": 1,
+    "status": "active",
+    "proof": {
+      "algorithm": "hmac-sha256",
+      "domain": "aew-child-authority-v0.2",
+      "canonicalization": "aew-canonical-json-v1",
+      "key_id": "fictional-key",
+      "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "agent-result": {
+    "schema_version": "0.2",
+    "result_id": "result-1",
+    "assignment_id": "assignment-1",
+    "parent_execution_id": "parent-execution-1",
+    "task_id": "task-1",
+    "plan_revision": 1,
+    "work_unit_id": "unit-1",
+    "context_id": "context-1",
+    "snapshot_id": "snapshot-1",
+    "child_authority_id": "child-authority-1",
+    "repository": "example/repository",
+    "observation": {
+      "kind": "candidate",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1",
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      }
+    },
+    "status": "completed",
+    "partial": false,
+    "access_mode": "scoped_write",
+    "artifacts": [
+      {
+        "artifact_id": "patch-1",
+        "path": "changes.patch",
+        "kind": "patch",
+        "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "bytes": 20
+      }
+    ],
+    "changes": [
+      {
+        "path": "src/example.py",
+        "change_type": "modified",
+        "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "findings": [
+      {
+        "finding_id": "finding-1",
+        "claim": "Example candidate finding",
+        "observation": {
+          "kind": "candidate",
+          "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "workspace_fingerprint": "candidate-workspace-1",
+          "candidate": {
+            "candidate_id": "candidate-1",
+            "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+            "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "workspace_fingerprint": "candidate-workspace-1"
+          }
+        },
+        "evidence_references": [
+          "evidence-1"
+        ]
+      }
+    ],
+    "evidence_ids": [
+      "evidence-1"
+    ],
+    "limitations": [
+      "Fictional schema example"
+    ]
+  }
+}

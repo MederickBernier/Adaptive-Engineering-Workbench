@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.2",
+  "child_authority_id": "child-authority-1",
+  "assignment_id": "assignment-1",
+  "parent_execution_id": "parent-execution-1",
+  "task_id": "task-1",
+  "plan_revision": 1,
+  "work_unit_id": "unit-1",
+  "context_id": "context-1",
+  "repository": "example/repository",
+  "observation": {
+    "kind": "candidate",
+    "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "workspace_fingerprint": "candidate-workspace-1",
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    }
+  },
+  "operations": [
+    "implement",
+    "run_tests"
+  ],
+  "allowed_paths": [
+    "src/**"
+  ],
+  "protected_paths": [
+    ".git/**",
+    "src/private/**"
+  ],
+  "budget": {
+    "max_iterations": 5,
+    "max_tool_calls": 20,
+    "max_duration_seconds": 300
+  },
+  "agent_counts": {
+    "max_concurrent_agents": 1,
+    "max_total_agent_launches": 1,
+    "max_delegation_depth": 1
+  },
+  "parent_grant_id": "grant-1",
+  "issuer_id": "trusted-host",
+  "issued_at": "2026-01-01T00:00:00Z",
+  "expires_at": "2099-01-01T00:00:00Z",
+  "revocation_reference": "trusted-status:child-authority-1",
+  "delegation_depth": 1,
+  "status": "active",
+  "proof": {
+    "algorithm": "hmac-sha256",
+    "domain": "aew-approval-v0.2",
+    "canonicalization": "aew-canonical-json-v1",
+    "key_id": "fictional-key",
+    "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+  }
+}

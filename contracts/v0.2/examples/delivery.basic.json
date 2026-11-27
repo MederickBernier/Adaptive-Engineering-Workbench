@@ -1,0 +1,153 @@
+{
+  "schema_version": "0.2",
+  "delivery_id": "delivery-1",
+  "task_id": "task-1",
+  "repository": "example/repository",
+  "plan_revision": 1,
+  "work_units": [
+    {
+      "work_unit_id": "unit-1",
+      "status": "commit_proposed",
+      "outcome_kind": "implementation",
+      "commit_proposal": {
+        "title": "Update example",
+        "body": "Example proposal",
+        "format": "custom"
+      },
+      "change_boundary": {
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "files": [
+          {
+            "path": "src/example.py",
+            "change_type": "modified",
+            "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+          }
+        ],
+        "separation": "isolated_patch",
+        "workspace_fingerprint": "candidate-workspace-1"
+      },
+      "candidate": {
+        "candidate_id": "candidate-1",
+        "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "workspace_fingerprint": "candidate-workspace-1"
+      },
+      "requirements": {
+        "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+        "required_checks": [
+          "unit"
+        ],
+        "required_review_ids": [
+          "human-review-1"
+        ],
+        "human_review_required": true
+      },
+      "verification": [
+        {
+          "check_id": "unit",
+          "execution_id": "execution-1",
+          "evidence_id": "evidence-1",
+          "candidate": {
+            "candidate_id": "candidate-1",
+            "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+            "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "workspace_fingerprint": "candidate-workspace-1"
+          },
+          "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+          "runtime_approval_id": "runtime-approval-1",
+          "status": "passed",
+          "observed_at": "2026-01-01T00:00:00Z"
+        }
+      ],
+      "reviews": [
+        {
+          "review_id": "human-review-1",
+          "issuer_id": "trusted-host",
+          "candidate": {
+            "candidate_id": "candidate-1",
+            "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+            "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "workspace_fingerprint": "candidate-workspace-1"
+          },
+          "requirements_digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+          "outcome": "accepted",
+          "reviewer_kind": "human",
+          "issued_at": "2026-01-01T00:00:00Z",
+          "proof": {
+            "algorithm": "hmac-sha256",
+            "domain": "aew-review-acceptance-v0.2",
+            "canonicalization": "aew-canonical-json-v1",
+            "key_id": "fictional-key",
+            "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      ],
+      "application": {
+        "status": "pending"
+      }
+    }
+  ],
+  "pull_request": {
+    "status": "not_ready",
+    "included_work_units": [
+      "unit-1"
+    ]
+  },
+  "publication": {
+    "stage": {
+      "status": "not_authorized"
+    },
+    "commit": {
+      "status": "not_authorized"
+    },
+    "push": {
+      "status": "not_authorized"
+    },
+    "create_pr": {
+      "status": "not_authorized"
+    },
+    "merge": {
+      "status": "not_authorized"
+    }
+  },
+  "candidate_manifest": {
+    "candidate": {
+      "candidate_id": "candidate-1",
+      "digest": "sha256:0bac774559c24c9a2a840e35e9c47986dde3c3e61d6a64d7a9ffcabe3ff33d68",
+      "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "workspace_fingerprint": "candidate-workspace-1"
+    },
+    "repository": "example/repository",
+    "snapshot_id": "snapshot-1",
+    "requirements": {
+      "digest": "sha256:757881f215478e70ba1a32f029d8a69597e3cb139e78cd84a8791c0280abfc11",
+      "required_checks": [
+        "unit"
+      ],
+      "required_review_ids": [
+        "human-review-1"
+      ],
+      "human_review_required": true
+    },
+    "result_package_ids": [
+      "result-1"
+    ],
+    "files": [
+      {
+        "path": "src/example.py",
+        "change_type": "modified",
+        "before_hash": "git:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "after_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "resolution_references": [],
+    "contributions": [
+      {
+        "result_id": "result-1",
+        "disposition": "accepted",
+        "reason": "Accepted scoped contribution"
+      }
+    ]
+  }
+}

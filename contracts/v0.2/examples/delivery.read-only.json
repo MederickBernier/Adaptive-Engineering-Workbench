@@ -1,0 +1,40 @@
+{
+  "schema_version": "0.2",
+  "delivery_id": "delivery-1",
+  "task_id": "task-1",
+  "repository": "example/repository",
+  "plan_revision": 1,
+  "work_units": [
+    {
+      "work_unit_id": "unit-1",
+      "status": "findings_ready",
+      "outcome_kind": "read_only",
+      "change_boundary": {
+        "base_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "files": [],
+        "separation": "isolated_patch"
+      },
+      "verification": []
+    }
+  ],
+  "pull_request": {
+    "status": "not_requested"
+  },
+  "publication": {
+    "stage": {
+      "status": "not_authorized"
+    },
+    "commit": {
+      "status": "not_authorized"
+    },
+    "push": {
+      "status": "not_authorized"
+    },
+    "create_pr": {
+      "status": "not_authorized"
+    },
+    "merge": {
+      "status": "not_authorized"
+    }
+  }
+}
